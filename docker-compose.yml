@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # Authentication Service
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - MONGO_URI=mongodb://mongo:27017/auth-db
+      - JWT_SECRET=supersecretkey
+    depends_on:
+      - mongo
+
+  # Order Service
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+      - MONGO_URI=mongodb://mongo:27017/orders-db
+    depends_on:
+      - mongo
+
+  # Gateway
+  gateway:
+    build: ./services/gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - ORDER_SERVICE_URL=http://order-service:4002
+    depends_on:
+      - auth-service
+      - order-service
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+volumes:
+  mongo_data:
