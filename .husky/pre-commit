@@ -1,0 +1,6 @@
+#!/bin/sh
+# Check if .env and .env.example keys are in sync
+npx sync-dotenv --check
+
+# Run linters on staged files
+npx lint-staged

@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "scripts": {
     "install-all": "npm install && cd services/auth-service && npm install && cd ../order-service && npm install && cd ../gateway && npm install && cd ../../frontend && npm install",
-    "start": "concurrently \"cd services/auth-service && npm start\" \"cd services/order-service && npm start\" \"cd services/gateway && npm start\" \"cd frontend && npm run build && npm start\""
+    "start": "concurrently \"cd services/auth-service && npm start\" \"cd services/order-service && npm start\" \"cd services/gateway && npm start\" \"cd frontend && npm run build && npm start\"",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "sync-dotenv": "^2.7.0"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -15,5 +20,20 @@
     "http-proxy-middleware": "^3.0.5",
     "mongoose": "^9.1.5",
     "next": "^16.1.6"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "**/*.{ts,tsx}": [
+      "bash -c 'tsc --noEmit'"
+    ],
+    "**/.env": [
+      "echo '❌ Error: You are trying to commit a .env file!' && exit 1"
+    ],
+    "**/*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
