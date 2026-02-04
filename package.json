@@ -3,6 +3,17 @@
   "version": "1.0.0",
   "scripts": {
     "install-all": "npm install && cd services/auth-service && npm install && cd ../order-service && npm install && cd ../gateway && npm install && cd ../../frontend && npm install",
-    "start": "concurrently \"cd services/auth-service && npm start\" \"cd services/order-service && npm start\" \"cd services/gateway && npm start\" \"cd frontend && npm run dev\""
+    "start": "concurrently \"cd services/auth-service && npm start\" \"cd services/order-service && npm start\" \"cd services/gateway && npm start\" \"cd frontend && npm run build && npm start\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
+    "mongoose": "^9.1.5",
+    "next": "^16.1.6"
   }
 }
