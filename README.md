@@ -34,11 +34,11 @@
 
 ---
 
-When you open the site, you see Mobile phone service description and button log in, with text below to sign in. 
+When you open the site, you see Mobile phone service description and button log in, with text below to sign in.
 
 If you choose log in you can enter client log in credentials, after that you would be on client page; Or if you enter special credentials (for example: Username: Master, Password: 12345678 ), then you would enter masters log in page, after right credentials you would enter master page.
 
-On Client page you can create order and looking on history with all orders and their all info (status, model and etc.), also here would be search so you can easily find order you need. 
+On Client page you can create order and looking on history with all orders and their all info (status, model and etc.), also here would be search so you can easily find order you need.
 
 On Master page you would have orders, and you can change theirs info, here also would be search.
 
@@ -47,6 +47,7 @@ On Master page you would have orders, and you can change theirs info, here also 
 ## 🏗️ Architecture
 
 ### Microservices Design
+
 The application follows a microservices architecture with independent services communicating through an API Gateway:
 
 ```
@@ -141,7 +142,7 @@ mobile-service-system/
 │       └── package.json
 │
 └── .github/
-    └── .gitignore          
+    └── .gitignore
 ```
 
 ---
@@ -149,6 +150,7 @@ mobile-service-system/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Docker & Docker Compose** (recommended for easy setup)
 - **Node.js 18+** (if running locally without Docker)
 - **MongoDB** (if running locally)
@@ -156,12 +158,14 @@ mobile-service-system/
 ### Quick Start with Docker (Recommended)
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/ShvyrydAlina/mobile-service-system.git
    cd mobile-service-system
    ```
 
 2. **Start all services**
+
    ```bash
    docker-compose up --build
    ```
@@ -174,11 +178,13 @@ mobile-service-system/
 ### Manual Setup (Development)
 
 1. **Install dependencies for all services**
+
    ```bash
    npm run install-all
    ```
 
 2. **Start services with concurrently**
+
    ```bash
    npm start
    ```
@@ -194,21 +200,24 @@ mobile-service-system/
 ## 🔐 Default Credentials
 
 ### Master (Technician) Account
+
 ```
 Username: Master
 Password: 12345678
 ```
 
 ### Create Client Account
+
 - Click "Sign up" on the login page
 - Create any username (min 3 characters) and password (min 6 characters)
 - Login with created credentials
 
 ---
 
-## 📖 Future all functions 
+## 📖 Future all functions
 
 ### For Clients
+
 1. Login with your credentials
 2. Click "Create Order"
 3. Fill in device details (model, OS version, description)
@@ -217,6 +226,7 @@ Password: 12345678
 6. Track repair status in real-time
 
 ### For Technicians/Masters
+
 1. Login with Master credentials
 2. View all repair orders in the dashboard
 3. Update order status as work progresses
@@ -228,6 +238,7 @@ Password: 12345678
 ## 📊 API Endpoints
 
 ### Authentication (`/api/auth`)
+
 - `POST /login` - User login
 - `POST /register` - Create new client account
 - `POST /refresh` - Refresh access token
@@ -235,6 +246,7 @@ Password: 12345678
 - `GET /me` - Get current user info (requires token)
 
 ### Orders (`/api/orders`)
+
 - `POST /` - Create new order
 - `GET /` - Get all orders (master) or user's orders (client)
 - `PUT /:id` - Update order status
@@ -247,7 +259,7 @@ Password: 12345678
 ## 🧚‍♀️ Team
 
 | Member                 | Role                            |
-|------------------------|---------------------------------|
+| ---------------------- | ------------------------------- |
 | **Shvyryd Alina**      | Team Lead, Full Stack Developer |
 | **Sherepera Kateryna** | Full Stack Developer            |
 | **Luzhetska Anna**     | Full Stack Developer            |

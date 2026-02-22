@@ -1,7 +1,13 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { authAPI } from './api';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { authAPI } from "./api";
 
 const AuthContext = createContext(null);
 
@@ -10,21 +16,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const getTokens = () => {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === "undefined") return {};
     return {
-      accessToken: localStorage.getItem('accessToken'),
-      refreshToken: localStorage.getItem('refreshToken'),
+      accessToken: localStorage.getItem("accessToken"),
+      refreshToken: localStorage.getItem("refreshToken"),
     };
   };
 
   const setTokens = (accessToken, refreshToken) => {
-    localStorage.setItem('accessToken', accessToken);
-    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem("accessToken", accessToken);
+    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
   };
 
   const clearTokens = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   };
 
   const loadUser = useCallback(async () => {
@@ -44,7 +50,7 @@ export function AuthProvider({ children }) {
         if (refreshResult.success) {
           setTokens(
             refreshResult.data.accessToken,
-            refreshResult.data.refreshToken || refreshToken
+            refreshResult.data.refreshToken || refreshToken,
           );
           const retryResult = await authAPI.me(refreshResult.data.accessToken);
           if (retryResult.success) setUser(retryResult.data.user);
@@ -104,6 +110,6 @@ export function AuthProvider({ children }) {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };

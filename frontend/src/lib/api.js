@@ -1,10 +1,10 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 class AuthAPI {
   async login(username, password) {
     const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     return res.json();
@@ -12,8 +12,8 @@ class AuthAPI {
 
   async register(username, password) {
     const res = await fetch(`${API_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     return res.json();
@@ -21,8 +21,8 @@ class AuthAPI {
 
   async logout(refreshToken) {
     const res = await fetch(`${API_URL}/api/auth/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
     return res.json();
@@ -37,8 +37,8 @@ class AuthAPI {
 
   async refresh(refreshToken) {
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refreshToken }),
     });
     return res.json();

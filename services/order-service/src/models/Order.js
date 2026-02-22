@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const OrderSchema = new mongoose.Schema({
+const OrderSchema = new mongoose.Schema(
+  {
     clientId: { type: String, required: true }, // ID користувача (з Auth сервісу)
     phoneModel: { type: String, required: true },
     purchaseDate: { type: Date },
@@ -8,15 +9,26 @@ const OrderSchema = new mongoose.Schema({
     description: { type: String, required: true },
     technicianComment: { type: String },
     status: {
-        type: String,
-        enum: ['new', 'in progress', 'waiting customer response', 'waiting spare parts', 'failed', 'done'],
-        default: 'new'
+      type: String,
+      enum: [
+        "new",
+        "in progress",
+        "waiting customer response",
+        "waiting spare parts",
+        "failed",
+        "done",
+      ],
+      default: "new",
     },
-    historyLog: [{
+    historyLog: [
+      {
         status: String,
         changedAt: { type: Date, default: Date.now },
-        comment: String
-    }]
-}, { timestamps: true });
+        comment: String,
+      },
+    ],
+  },
+  { timestamps: true },
+);
 
-module.exports = mongoose.model('Order', OrderSchema);
+module.exports = mongoose.model("Order", OrderSchema);

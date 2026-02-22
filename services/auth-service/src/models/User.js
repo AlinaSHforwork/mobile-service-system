@@ -1,26 +1,26 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema(
   {
     username: {
       type: String,
-      required: [true, 'Username is required'],
+      required: [true, "Username is required"],
       unique: true,
       trim: true,
-      minlength: [3, 'Username must be at least 3 characters'],
-      maxlength: [30, 'Username cannot exceed 30 characters'],
+      minlength: [3, "Username must be at least 3 characters"],
+      maxlength: [30, "Username cannot exceed 30 characters"],
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [6, 'Password must be at least 6 characters'],
-      select: false, 
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+      select: false,
     },
     role: {
       type: String,
-      enum: ['client', 'master'],
-      default: 'client',
+      enum: ["client", "master"],
+      default: "client",
     },
     refreshTokens: {
       type: [String],
@@ -44,12 +44,12 @@ const UserSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before saving
-UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
   const rounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
   this.password = await bcrypt.hash(this.password, rounds);
   next();
@@ -104,4 +104,4 @@ UserSchema.methods.toSafeObject = function () {
   };
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model("User", UserSchema);
