@@ -1,6 +1,10 @@
-const { validationResult } = require('express-validator');
-const User = require('../models/User');
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
+const { validationResult } = require("express-validator");
+const User = require("../models/User");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} = require("../utils/jwt");
 
 // Helper to check master credentials
 const isMasterCredentials = (username, password) => {
@@ -22,15 +26,19 @@ const login = async (req, res) => {
 
     // --- Master login (hardcoded credentials, no DB) ---
     if (isMasterCredentials(username, password)) {
-      const masterPayload = { id: 'master', username: 'Master', role: 'master' };
+      const masterPayload = {
+        id: "master",
+        username: "Master",
+        role: "master",
+      };
       const accessToken = generateAccessToken(masterPayload);
       const refreshToken = generateRefreshToken(masterPayload);
 
       return res.status(200).json({
         success: true,
-        message: 'Master login successful',
+        message: "Master login successful",
         data: {
-          user: { id: 'master', username: 'Master', role: 'master' },
+          user: { id: "master", username: "Master", role: "master" },
           accessToken,
           refreshToken,
         },
@@ -38,15 +46,21 @@ const login = async (req, res) => {
     }
 
     // --- Client login ---
-    const user = await User.findOne({ username }).select('+password +loginAttempts +lockUntil +refreshTokens');
+    const user = await User.findOne({ username }).select(
+      "+password +loginAttempts +lockUntil +refreshTokens",
+    );
 
     if (!user) {
       // Prevent username enumeration - same error for wrong user or password
-      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid username or password" });
     }
 
     if (user.isLocked()) {
-      const lockRemaining = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
+      const lockRemaining = Math.ceil(
+        (user.lockUntil - Date.now()) / 1000 / 60,
+      );
       return res.status(423).json({
         success: false,
         message: `Account locked. Try again in ${lockRemaining} minute(s).`,
@@ -56,11 +70,15 @@ const login = async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       await user.incrementLoginAttempts();
-      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid username or password" });
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'Account deactivated' });
+      return res
+        .status(403)
+        .json({ success: false, message: "Account deactivated" });
     }
 
     await user.resetLoginAttempts();
@@ -70,12 +88,15 @@ const login = async (req, res) => {
     const refreshToken = generateRefreshToken(payload);
 
     // Store refresh token (keep max 5 sessions)
-    user.refreshTokens = [...(user.refreshTokens || []).slice(-4), refreshToken];
+    user.refreshTokens = [
+      ...(user.refreshTokens || []).slice(-4),
+      refreshToken,
+    ];
     await user.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         user: user.toSafeObject(),
         accessToken,
@@ -83,8 +104,8 @@ const login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -99,16 +120,23 @@ const register = async (req, res) => {
     const { username, password } = req.body;
 
     // Prevent registering as Master username
-    if (username.toLowerCase() === (process.env.MASTER_USERNAME || 'master').toLowerCase()) {
-      return res.status(400).json({ success: false, message: 'Username not available' });
+    if (
+      username.toLowerCase() ===
+      (process.env.MASTER_USERNAME || "master").toLowerCase()
+    ) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Username not available" });
     }
 
     const exists = await User.findOne({ username });
     if (exists) {
-      return res.status(409).json({ success: false, message: 'Username already taken' });
+      return res
+        .status(409)
+        .json({ success: false, message: "Username already taken" });
     }
 
-    const user = await User.create({ username, password, role: 'client' });
+    const user = await User.create({ username, password, role: "client" });
 
     const payload = { id: user._id, username: user.username, role: user.role };
     const accessToken = generateAccessToken(payload);
@@ -119,7 +147,7 @@ const register = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Registration successful',
+      message: "Registration successful",
       data: {
         user: user.toSafeObject(),
         accessToken,
@@ -127,8 +155,8 @@ const register = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Register error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -137,43 +165,59 @@ const refresh = async (req, res) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) {
-      return res.status(400).json({ success: false, message: 'Refresh token required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Refresh token required" });
     }
 
     let decoded;
     try {
       decoded = verifyRefreshToken(refreshToken);
     } catch {
-      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid or expired refresh token" });
     }
 
     // Master refresh (no DB check)
-    if (decoded.id === 'master') {
-      const payload = { id: 'master', username: 'Master', role: 'master' };
+    if (decoded.id === "master") {
+      const payload = { id: "master", username: "Master", role: "master" };
       const newAccessToken = generateAccessToken(payload);
       return res.json({ success: true, data: { accessToken: newAccessToken } });
     }
 
-    const user = await User.findById(decoded.id).select('+refreshTokens +isActive');
+    const user = await User.findById(decoded.id).select(
+      "+refreshTokens +isActive",
+    );
     if (!user || !user.isActive || !user.refreshTokens.includes(refreshToken)) {
-      return res.status(401).json({ success: false, message: 'Refresh token revoked' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token revoked" });
     }
 
     // Rotate refresh token
-    const newRefreshToken = generateRefreshToken({ id: user._id, username: user.username, role: user.role });
+    const newRefreshToken = generateRefreshToken({
+      id: user._id,
+      username: user.username,
+      role: user.role,
+    });
     user.refreshTokens = user.refreshTokens.filter((t) => t !== refreshToken);
     user.refreshTokens.push(newRefreshToken);
     await user.save();
 
-    const newAccessToken = generateAccessToken({ id: user._id, username: user.username, role: user.role });
+    const newAccessToken = generateAccessToken({
+      id: user._id,
+      username: user.username,
+      role: user.role,
+    });
 
     return res.json({
       success: true,
       data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
     });
   } catch (err) {
-    console.error('Refresh error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Refresh error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -186,10 +230,12 @@ const logout = async (req, res) => {
       let decoded;
       try {
         decoded = verifyRefreshToken(refreshToken);
-        if (decoded.id !== 'master') {
-          const user = await User.findById(decoded.id).select('+refreshTokens');
+        if (decoded.id !== "master") {
+          const user = await User.findById(decoded.id).select("+refreshTokens");
           if (user) {
-            user.refreshTokens = user.refreshTokens.filter((t) => t !== refreshToken);
+            user.refreshTokens = user.refreshTokens.filter(
+              (t) => t !== refreshToken,
+            );
             await user.save();
           }
         }
@@ -198,29 +244,29 @@ const logout = async (req, res) => {
       }
     }
 
-    return res.json({ success: true, message: 'Logged out successfully' });
+    return res.json({ success: true, message: "Logged out successfully" });
   } catch (err) {
-    console.error('Logout error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Logout error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
 // GET /me
 const me = async (req, res) => {
   try {
-    if (req.user.role === 'master') {
+    if (req.user.role === "master") {
       return res.json({
         success: true,
-        data: { user: { id: 'master', username: 'Master', role: 'master' } },
+        data: { user: { id: "master", username: "Master", role: "master" } },
       });
     }
     return res.json({ success: true, data: { user: req.user.toSafeObject() } });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
+  } catch {
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// GET /verify  
+// GET /verify
 const verify = async (req, res) => {
   return res.json({
     success: true,
