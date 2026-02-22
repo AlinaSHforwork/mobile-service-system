@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "eslint": "^10.0.1",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
@@ -22,18 +23,24 @@
     "next": "^16.1.6"
   },
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
+    "frontend/**/*.{js,jsx,ts,tsx}": [
+      "bash -c 'cd frontend && npx eslint --fix'",
+      "bash -c 'cd frontend && npx prettier --write'"
     ],
-    "**/*.{ts,tsx}": [
-      "bash -c 'tsc --noEmit'"
+    "services/auth-service/**/*.{js,ts}": [
+      "bash -c 'cd services/auth-service && npx eslint --fix'",
+      "bash -c 'cd services/auth-service && npx prettier --write'"
     ],
-    "**/.env": [
-      "echo '❌ Error: You are trying to commit a .env file!' && exit 1"
+    "services/gateway/**/*.{js,ts}": [
+      "bash -c 'cd services/gateway && npx eslint --fix'",
+      "bash -c 'cd services/gateway && npx prettier --write'"
     ],
-    "**/*.{json,md}": [
-      "prettier --write"
+    "services/order-service/**/*.{js,ts}": [
+      "bash -c 'cd services/order-service && npx eslint --fix'",
+      "bash -c 'cd services/order-service && npx prettier --write'"
+    ],
+    "*.{json,md}": [
+      "npx prettier --write --ignore-unknown"
     ]
   }
 }

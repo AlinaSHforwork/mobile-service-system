@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # MongoDB Service
   mongo:
     image: mongo:latest
     ports:
@@ -9,7 +8,6 @@ services:
     volumes:
       - mongo_data:/data/db
 
-  # Authentication Service
   auth-service:
     build: ./services/auth-service
     ports:
@@ -17,11 +15,18 @@ services:
     environment:
       - PORT=4001
       - MONGO_URI=mongodb://mongo:27017/auth-db
-      - JWT_SECRET=supersecretkey
+      - JWT_SECRET=supersecretkey_change_in_production_32chars
+      - JWT_EXPIRES_IN=7d
+      - JWT_REFRESH_SECRET=refresh_supersecret_change_in_production
+      - JWT_REFRESH_EXPIRES_IN=30d
+      - BCRYPT_ROUNDS=12
+      - MASTER_USERNAME=Master
+      - MASTER_PASSWORD=12345678
+      - NODE_ENV=production
     depends_on:
       - mongo
+    restart: unless-stopped
 
-  # Order Service
   order-service:
     build: ./services/order-service
     ports:
@@ -29,10 +34,11 @@ services:
     environment:
       - PORT=4002
       - MONGO_URI=mongodb://mongo:27017/orders-db
+      - NODE_ENV=production
     depends_on:
       - mongo
+    restart: unless-stopped
 
-  # Gateway
   gateway:
     build: ./services/gateway
     ports:
@@ -41,9 +47,11 @@ services:
       - PORT=8000
       - AUTH_SERVICE_URL=http://auth-service:4001
       - ORDER_SERVICE_URL=http://order-service:4002
+      - NODE_ENV=production
     depends_on:
       - auth-service
       - order-service
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
@@ -51,6 +59,9 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - gateway
+    restart: unless-stopped
 
 volumes:
   mongo_data:

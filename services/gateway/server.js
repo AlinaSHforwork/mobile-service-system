@@ -6,33 +6,54 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Allow frontend to make requests
-app.use(cors());
-app.use(express.json());
+// CORS 
+app.use(cors({
+  origin: true,          
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
-// Routing
-// All requests to /api/auth/* are forwarded to Auth Service
+const AUTH_URL  = process.env.AUTH_SERVICE_URL  || 'http://localhost:4001';
+const ORDER_URL = process.env.ORDER_SERVICE_URL || 'http://localhost:4002';
+
+// Auth proxy 
+// /api/auth/login  →  http://auth-service:4001/login
 app.use('/api/auth', createProxyMiddleware({
-    target: process.env.AUTH_SERVICE_URL || 'http://localhost:4001',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/api/auth': '', // прибираємо префікс /api/auth перед відправкою
-    },
+  target: AUTH_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/api/auth': '' },
+  onError(err, req, res) {
+    console.error('[gateway] auth proxy error:', err.message);
+    if (!res.headersSent) {
+      res.status(502).json({ success: false, message: 'Auth service unavailable' });
+    }
+  },
 }));
 
-// All requests to /api/orders/* are forwarded to Order Service
+// Order proxy 
 app.use('/api/orders', createProxyMiddleware({
-    target: process.env.ORDER_SERVICE_URL || 'http://localhost:4002',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/api/orders': '',
-    },
+  target: ORDER_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/api/orders': '' },
+  onError(err, req, res) {
+    console.error('[gateway] order proxy error:', err.message);
+    if (!res.headersSent) {
+      res.status(502).json({ success: false, message: 'Order service unavailable' });
+    }
+  },
 }));
 
-app.get('/', (req, res) => {
-    res.send('API Gateway is running');
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'gateway', authTarget: AUTH_URL });
 });
 
-app.listen(PORT, () => {
-    console.log(`Gateway running on port ${PORT}`);
+app.get('/', (req, res) => {
+  res.json({ message: 'API Gateway running' });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Gateway listening on 0.0.0.0:${PORT}`);
+  console.log(`   Auth  → ${AUTH_URL}`);
+  console.log(`   Order → ${ORDER_URL}`);
 });
