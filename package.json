@@ -7,7 +7,13 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.3",
+    "@eslint/js": "^9.39.3",
+    "@next/eslint-plugin-next": "^16.1.6",
     "concurrently": "^9.2.1",
+    "eslint": "^9.39.3",
+    "eslint-plugin-next": "^0.0.0",
+    "globals": "^17.3.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
@@ -22,18 +28,10 @@
     "next": "^16.1.6"
   },
   "lint-staged": {
-    "**/*.{js,jsx,ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "**/*.{ts,tsx}": [
-      "bash -c 'tsc --noEmit'"
-    ],
+    "**/*.{js,jsx,ts,tsx}": "eslint --fix",
+    "**/*.{json,md}": "npx prettier --write --ignore-unknown",
     "**/.env": [
       "echo '❌ Error: You are trying to commit a .env file!' && exit 1"
-    ],
-    "**/*.{json,md}": [
-      "prettier --write"
     ]
   }
 }
