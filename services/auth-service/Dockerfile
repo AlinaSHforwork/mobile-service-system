@@ -1,14 +1,12 @@
 FROM node:18-alpine
 
-# Working directory
 WORKDIR /app
 
-# Copy package.json and install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 
-# Copy code files
 COPY . .
 
-# Start the application
-CMD ["npm", "start"]
+EXPOSE 4001
+
+CMD ["node", "src/index.js"]
