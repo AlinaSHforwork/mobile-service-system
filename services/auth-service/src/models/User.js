@@ -1,107 +1,114 @@
-const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const pool = require("../db/pool");
 
-const UserSchema = new mongoose.Schema(
-  {
-    username: {
-      type: String,
-      required: [true, "Username is required"],
-      unique: true,
-      trim: true,
-      minlength: [3, "Username must be at least 3 characters"],
-      maxlength: [30, "Username cannot exceed 30 characters"],
-    },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false,
-    },
-    role: {
-      type: String,
-      enum: ["client", "master"],
-      default: "client",
-    },
-    refreshTokens: {
-      type: [String],
-      default: [],
-      select: false,
-    },
-    loginAttempts: {
-      type: Number,
-      default: 0,
-      select: false,
-    },
-    lockUntil: {
-      type: Date,
-      select: false,
-    },
-    lastLogin: {
-      type: Date,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  { timestamps: true },
-);
-
-// Hash password before saving
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const rounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-  this.password = await bcrypt.hash(this.password, rounds);
-  next();
-});
-
-// Compare password method
-UserSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-// Check if account is locked
-UserSchema.methods.isLocked = function () {
-  return this.lockUntil && this.lockUntil > Date.now();
-};
-
-// Increment login attempts or lock account
-UserSchema.methods.incrementLoginAttempts = async function () {
-  const MAX_ATTEMPTS = 5;
-  const LOCK_TIME = 15 * 60 * 1000; // 15 minutes
-
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    // Reset if lock expired
-    return this.updateOne({
-      $set: { loginAttempts: 1 },
-      $unset: { lockUntil: 1 },
-    });
+class UserModel {
+  static async findOneByUsername(username, { withSensitive = false } = {}) {
+    const res = await pool.query(
+      `select id, username, role, last_login, is_active,
+              ${withSensitive ? "password, login_attempts, lock_until, refresh_tokens" : "null::text as password, null::int as login_attempts, null::timestamptz as lock_until, null::text[] as refresh_tokens"}
+         from users where username = $1`,
+      [username],
+    );
+    return res.rows[0] || null;
   }
 
-  const updates = { $inc: { loginAttempts: 1 } };
-  if (this.loginAttempts + 1 >= MAX_ATTEMPTS) {
-    updates.$set = { lockUntil: Date.now() + LOCK_TIME };
+  static async findById(id, { withSensitive = false } = {}) {
+    const res = await pool.query(
+      `select id, username, role, last_login, is_active,
+              ${withSensitive ? "password, login_attempts, lock_until, refresh_tokens" : "null::text as password, null::int as login_attempts, null::timestamptz as lock_until, null::text[] as refresh_tokens"}
+         from users where id = $1`,
+      [id],
+    );
+    return res.rows[0] || null;
   }
-  return this.updateOne(updates);
-};
 
-// Reset login attempts on success
-UserSchema.methods.resetLoginAttempts = function () {
-  return this.updateOne({
-    $set: { loginAttempts: 0, lastLogin: new Date() },
-    $unset: { lockUntil: 1 },
-  });
-};
+  static async create({ username, password, role = "client" }) {
+    const rounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const hashed = await bcrypt.hash(password, rounds);
+    const res = await pool.query(
+      `insert into users (username, password, role) values ($1,$2,$3)
+       returning id, username, role, last_login, is_active, created_at`,
+      [username, hashed, role],
+    );
+    return res.rows[0];
+  }
 
-// Safe user object (no sensitive fields)
-UserSchema.methods.toSafeObject = function () {
-  return {
-    id: this._id,
-    username: this.username,
-    role: this.role,
-    lastLogin: this.lastLogin,
-    createdAt: this.createdAt,
-  };
-};
+  static async comparePassword(user, candidatePassword) {
+    return bcrypt.compare(candidatePassword, user.password);
+  }
 
-module.exports = mongoose.model("User", UserSchema);
+  static isLocked(user) {
+    return user.lock_until && new Date(user.lock_until).getTime() > Date.now();
+  }
+
+  static async incrementLoginAttempts(user) {
+    const MAX_ATTEMPTS = 5;
+    const LOCK_TIME_MS = 15 * 60 * 1000;
+
+    // if lock expired, reset
+    if (user.lock_until && new Date(user.lock_until).getTime() < Date.now()) {
+      await pool.query(
+        `update users set login_attempts = 1, lock_until = null where id = $1`,
+        [user.id],
+      );
+      return;
+    }
+
+    const attempts = (user.login_attempts || 0) + 1;
+    const lockUntil = attempts >= MAX_ATTEMPTS ? new Date(Date.now() + LOCK_TIME_MS) : null;
+    await pool.query(
+      `update users set login_attempts = $2, lock_until = $3 where id = $1`,
+      [user.id, attempts, lockUntil],
+    );
+  }
+
+  static async resetLoginAttempts(user) {
+    await pool.query(
+      `update users set login_attempts = 0, lock_until = null, last_login = now() where id = $1`,
+      [user.id],
+    );
+  }
+
+  static toSafeObject(user) {
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      lastLogin: user.last_login,
+      createdAt: user.created_at,
+    };
+  }
+
+  static async addRefreshToken(userId, token) {
+    await pool.query(
+      `update users set refresh_tokens = (select case when array_length(refresh_tokens,1) >= 5 then (array_append(slice.refresh_tokens, $2)) else array_append(refresh_tokens, $2) end from (select coalesce(refresh_tokens, '{}') as refresh_tokens from users where id=$1) slice) where id=$1`,
+      [userId, token],
+    );
+  }
+
+  static async hasRefreshToken(userId, token) {
+    const res = await pool.query(
+      `select 1 from users where id=$1 and $2 = any(refresh_tokens)`,
+      [userId, token],
+    );
+    return res.rowCount > 0;
+  }
+
+  static async rotateRefreshToken(userId, oldToken, newToken) {
+    await pool.query(
+      `update users
+         set refresh_tokens = array_append(array_remove(coalesce(refresh_tokens,'{}'), $2), $3)
+       where id=$1`,
+      [userId, oldToken, newToken],
+    );
+  }
+
+  static async removeRefreshToken(userId, token) {
+    await pool.query(
+      `update users set refresh_tokens = array_remove(coalesce(refresh_tokens,'{}'), $2) where id=$1`,
+      [userId, token],
+    );
+  }
+}
+
+module.exports = UserModel;
