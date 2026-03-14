@@ -1,5 +1,6 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const pool = require("./db/pool");
+const { initAuthSchema } = require("./db/init");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -14,7 +15,7 @@ const PORT = process.env.PORT || 4001;
 app.use(helmet());
 
 // CORS
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 
 // Body parsing
 app.use(express.json({ limit: "10kb" }));
@@ -41,7 +42,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     service: "auth-service",
-    db: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    db: pool.ended ? "disconnected" : "connected",
     uptime: process.uptime(),
   });
 });
@@ -58,30 +59,32 @@ app.use((err, req, res) => {
   res.status(500).json({ success: false, message: "Internal server error" });
 });
 
-const connectWithRetry = () => {
-  const uri = process.env.MONGO_URI || "mongodb://localhost:27017/auth-db";
-  console.log("⏳ Connecting to MongoDB...");
-  mongoose
-    .connect(uri, { serverSelectionTimeoutMS: 5000 })
-    .then(() => console.log("✅ Auth-Service connected to MongoDB"))
-    .catch((err) => {
-      console.error(
-        "❌ MongoDB connection failed, retrying in 5s:",
-        err.message,
-      );
-      setTimeout(connectWithRetry, 5000);
-    });
+const connectWithRetry = async () => {
+  try {
+    console.log("Connecting to PostgreSQL and ensuring schema...");
+    await pool.query("select 1");
+    await initAuthSchema();
+    console.log("Auth-Service ready with PostgreSQL");
+  } catch (err) {
+    console.error("PostgreSQL connection failed, retrying in 5s:", err.message);
+    setTimeout(connectWithRetry, 5000);
+  }
 };
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Auth Service listening on 0.0.0.0:${PORT}`);
+  console.log(`Auth Service listening on 0.0.0.0:${PORT}`);
 });
 
 connectWithRetry();
 
-process.on("SIGTERM", () => {
-  mongoose.connection.close();
-  process.exit(0);
+process.on("SIGTERM", async () => {
+  try { 
+    await pool.end();
+  } catch (err){
+    console.log(err)
+    process.exit(1);
+  }
+  
 });
 
 module.exports = app;

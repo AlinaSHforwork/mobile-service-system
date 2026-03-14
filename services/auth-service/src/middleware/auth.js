@@ -24,8 +24,8 @@ const authenticate = async (req, res, next) => {
       return next();
     }
 
-    const user = await User.findById(decoded.id).select("+isActive");
-    if (!user || !user.isActive) {
+    const user = await User.findById(decoded.id);
+    if (!user || !user.is_active) {
       return res
         .status(401)
         .json({ success: false, message: "User not found or deactivated" });

@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const cookie = require("cookie");
+const crypto = require("crypto");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 require("dotenv").config();
 
@@ -12,12 +14,39 @@ app.use(
     origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-csrf-token"],
   }),
 );
 
-const AUTH_URL = process.env.AUTH_SERVICE_URL || "http://localhost:4001";
-const ORDER_URL = process.env.ORDER_SERVICE_URL || "http://localhost:4002";
+// CSRF double submit cookie strategy
+const CSRF_SECRET = process.env.CSRF_SECRET;
+if (!CSRF_SECRET) throw new Error('CSRF_SECRET is required');
+app.use((req, res, next) => {
+  const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
+  if (!cookies["csrf-token"]) {
+    const token = crypto.createHmac("sha256", CSRF_SECRET).update(crypto.randomBytes(32)).digest("hex");
+    const isProd = process.env.NODE_ENV === "production";
+    res.setHeader("Set-Cookie", cookie.serialize("csrf-token", token, {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: isProd,
+      path: "/",
+      maxAge: 60 * 60 * 24,
+    }));
+  }
+  // Validate on state-changing methods
+  if (["POST","PUT","PATCH","DELETE"].includes(req.method)) {
+    const headerToken = req.headers["x-csrf-token"];
+    const cookieToken = cookies["csrf-token"]; 
+    if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+      return res.status(403).json({ success: false, message: "CSRF token invalid" });
+    }
+  }
+  next();
+});
+
+const AUTH_URL = process.env.AUTH_SERVICE_URL;
+const ORDER_URL = process.env.ORDER_SERVICE_URL;
 
 // Auth proxy
 // /api/auth/login  →  http://auth-service:4001/login
@@ -65,7 +94,7 @@ app.get("/", (req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Gateway listening on 0.0.0.0:${PORT}`);
+  console.log(`Gateway listening on 0.0.0.0:${PORT}`);
   console.log(`   Auth  → ${AUTH_URL}`);
   console.log(`   Order → ${ORDER_URL}`);
 });
