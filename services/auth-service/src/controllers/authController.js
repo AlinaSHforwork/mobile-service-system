@@ -1,18 +1,11 @@
 const { validationResult } = require("express-validator");
 const User = require("../models/User");
+const Master = require("../models/Master");
 const {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
 } = require("../utils/jwt");
-
-// Helper to check master credentials
-const isMasterCredentials = (username, password) => {
-  return (
-    username === process.env.MASTER_USERNAME &&
-    password === process.env.MASTER_PASSWORD
-  );
-};
 
 // POST /auth/login
 const login = async (req, res) => {
@@ -24,28 +17,48 @@ const login = async (req, res) => {
 
     const { username, password } = req.body;
 
-    // --- Master login (hardcoded credentials, no DB) ---
-    if (isMasterCredentials(username, password)) {
-      const masterPayload = {
-        id: "master",
-        username: "Master",
+    // Check masters table first
+    const master = await Master.findOneByUsername(username, { withSensitive: true });
+
+    if (master) {
+      if (!master.is_active) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Master account is deactivated" });
+      }
+
+      const isMatch = await Master.comparePassword(master, password);
+      if (!isMatch) {
+        // Wrong password — do NOT fall through to client lookup,
+        // just return generic invalid credentials message.
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid username or password" });
+      }
+
+      await Master.recordLogin(master.id);
+
+      const payload = {
+        id: master.id,
+        username: master.username,
+        displayName: master.display_name || master.username,
         role: "master",
       };
-      const accessToken = generateAccessToken(masterPayload);
-      const refreshToken = generateRefreshToken(masterPayload);
+      const accessToken = generateAccessToken(payload);
+      const refreshToken = generateRefreshToken(payload);
 
       return res.status(200).json({
         success: true,
         message: "Master login successful",
         data: {
-          user: { id: "master", username: "Master", role: "master" },
+          user: Master.toSafeObject(master),
           accessToken,
           refreshToken,
         },
       });
     }
 
-    // --- Client login ---
+    // Client login 
     const user = await User.findOneByUsername(username, { withSensitive: true });
 
     if (!user) {
@@ -84,7 +97,6 @@ const login = async (req, res) => {
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    // Store refresh token (keep max 5 sessions)
     await User.addRefreshToken(user.id, refreshToken);
 
     return res.status(200).json({
@@ -112,11 +124,9 @@ const register = async (req, res) => {
 
     const { username, password } = req.body;
 
-    // Prevent registering as Master username
-    if (
-      username.toLowerCase() ===
-      (process.env.MASTER_USERNAME || "master").toLowerCase()
-    ) {
+    // Prevent registering with a username that belongs to any master
+    const existingMaster = await Master.findOneByUsername(username);
+    if (existingMaster) {
       return res
         .status(400)
         .json({ success: false, message: "Username not available" });
@@ -171,13 +181,29 @@ const refresh = async (req, res) => {
         .json({ success: false, message: "Invalid or expired refresh token" });
     }
 
-    // Master refresh (no DB check)
-    if (decoded.id === "master") {
-      const payload = { id: "master", username: "Master", role: "master" };
+    // Master refresh
+    if (decoded.role === "master") {
+      const master = await Master.findById(decoded.id);
+      if (!master || !master.is_active) {
+        return res
+          .status(401)
+          .json({ success: false, message: "Refresh token revoked" });
+      }
+      const payload = {
+        id: master.id,
+        username: master.username,
+        displayName: master.display_name || master.username,
+        role: "master",
+      };
       const newAccessToken = generateAccessToken(payload);
-      return res.json({ success: true, data: { accessToken: newAccessToken } });
+      const newRefreshToken = generateRefreshToken(payload);
+      return res.json({
+        success: true,
+        data: { accessToken: newAccessToken, refreshToken: newRefreshToken },
+      });
     }
 
+    // Client refresh
     const user = await User.findById(decoded.id, { withSensitive: true });
     if (!user || !user.is_active) {
       return res
@@ -191,7 +217,6 @@ const refresh = async (req, res) => {
         .json({ success: false, message: "Refresh token revoked" });
     }
 
-    // Rotate refresh token
     const newRefreshToken = generateRefreshToken({
       id: user.id,
       username: user.username,
@@ -224,14 +249,14 @@ const logout = async (req, res) => {
       let decoded;
       try {
         decoded = verifyRefreshToken(refreshToken);
-        if (decoded.id !== "master") {
+        if (decoded.role !== "master") {
           const user = await User.findById(decoded.id, { withSensitive: true });
           if (user) {
             await User.removeRefreshToken(user.id, refreshToken);
           }
         }
       } catch {
-        // Token invalid - still return success
+        // Token invalid — still return success
       }
     }
 
@@ -246,9 +271,13 @@ const logout = async (req, res) => {
 const me = async (req, res) => {
   try {
     if (req.user.role === "master") {
+      const master = await Master.findById(req.user.id);
+      if (!master || !master.is_active) {
+        return res.status(401).json({ success: false, message: "Master not found" });
+      }
       return res.json({
         success: true,
-        data: { user: { id: "master", username: "Master", role: "master" } },
+        data: { user: Master.toSafeObject(master) },
       });
     }
     return res.json({ success: true, data: { user: User.toSafeObject(req.user) } });
@@ -257,7 +286,7 @@ const me = async (req, res) => {
   }
 };
 
-// GET /verify
+// GET /verify 
 const verify = async (req, res) => {
   return res.json({
     success: true,
