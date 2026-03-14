@@ -22,7 +22,26 @@ async function initAuthSchema() {
       );
     `);
 
-    // Create trigger function
+    // Create masters table 
+    await pool.query(`
+      create table if not exists masters (
+        id uuid primary key default gen_random_uuid(),
+        username text not null unique,
+        password text not null,
+        display_name text,
+        is_active boolean not null default true,
+        last_login timestamptz,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+    `);
+
+    // Create indexes on masters
+    await pool.query(`
+      create index if not exists idx_masters_username on masters(username);
+    `);
+
+    // Create trigger function 
     await pool.query(`
       create or replace function set_updated_at()
       returns trigger as $$
@@ -33,13 +52,22 @@ async function initAuthSchema() {
       $$ language plpgsql;
     `);
 
-    // Create trigger
+    // Triggers for users
     await pool.query(`
       drop trigger if exists trg_users_updated_at on users;
       create trigger trg_users_updated_at
       before update on users
       for each row execute function set_updated_at();
     `);
+
+    // Triggers for masters
+    await pool.query(`
+      drop trigger if exists trg_masters_updated_at on masters;
+      create trigger trg_masters_updated_at
+      before update on masters
+      for each row execute function set_updated_at();
+    `);
+
   } catch (err) {
     console.error("Error initializing auth schema:", err.message);
     throw err;
