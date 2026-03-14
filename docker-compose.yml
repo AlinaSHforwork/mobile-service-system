@@ -1,30 +1,34 @@
 version: "3.8"
 
 services:
-  mongo:
-    image: mongo:latest
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - "27017:27017"
+      - "5432:5432"
     volumes:
-      - mongo_data:/data/db
+      - pg_data:/var/lib/postgresql/data
 
   auth-service:
     build: ./services/auth-service
     ports:
       - "4001:4001"
     environment:
-      - PORT=4001
-      - MONGO_URI=mongodb://mongo:27017/auth-db
-      - JWT_SECRET=supersecretkey_change_in_production_32chars
-      - JWT_EXPIRES_IN=7d
-      - JWT_REFRESH_SECRET=refresh_supersecret_change_in_production
-      - JWT_REFRESH_EXPIRES_IN=30d
-      - BCRYPT_ROUNDS=12
-      - MASTER_USERNAME=Master
-      - MASTER_PASSWORD=12345678
-      - NODE_ENV=production
+      - PORT=${AUTH_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS}
+      - MASTER_USERNAME=${MASTER_USERNAME}
+      - MASTER_PASSWORD=${MASTER_PASSWORD}
+      - NODE_ENV=${NODE_ENV}
     depends_on:
-      - mongo
+      - postgres
     restart: unless-stopped
 
   order-service:
@@ -32,11 +36,11 @@ services:
     ports:
       - "4002:4002"
     environment:
-      - PORT=4002
-      - MONGO_URI=mongodb://mongo:27017/orders-db
-      - NODE_ENV=production
+      - PORT=${ORDER_PORT}
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=${NODE_ENV}
     depends_on:
-      - mongo
+      - postgres
     restart: unless-stopped
 
   gateway:
@@ -44,10 +48,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - PORT=8000
-      - AUTH_SERVICE_URL=http://auth-service:4001
-      - ORDER_SERVICE_URL=http://order-service:4002
-      - NODE_ENV=production
+      - PORT=${GATEWAY_PORT}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL}
+      - CSRF_SECRET=${CSRF_SECRET}
+      - NODE_ENV=${NODE_ENV}
     depends_on:
       - auth-service
       - order-service
@@ -58,10 +63,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     depends_on:
       - gateway
     restart: unless-stopped
 
 volumes:
-  mongo_data:
+  pg_data:
