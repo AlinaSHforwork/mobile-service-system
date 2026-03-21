@@ -22,7 +22,7 @@ async function initOrderSchema() {
           'waiting customer response',
           'waiting spare parts',
           'failed',
-          'done',
+          'done'
         )) default 'new',
         assigned_to uuid,
         cost decimal(10, 2),
