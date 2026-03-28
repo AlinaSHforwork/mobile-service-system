@@ -1,13 +1,13 @@
-const express = require("express");
-const pool = require("./db/pool");
-const { initAuthSchema } = require("./db/init");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
-require("dotenv").config();
+import express from "express";
+import pool from "./db/pool.js";
+import { initAuthSchema } from "./db/init.js";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import "dotenv/config";
 
-const authRoutes = require("./routes/auth");
+import authRoutes from "./routes/auth.js";
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -87,4 +87,4 @@ process.on("SIGTERM", async () => {
   
 });
 
-module.exports = app;
+export default app;

@@ -2,11 +2,11 @@
   "name": "gateway",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "type": "commonjs",
   "dependencies": {
     "cookie": "^0.6.0",
     "cors": "^2.8.5",

@@ -1,9 +1,9 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
 
-const pool = require("./db/pool");
-const { initOrderSchema } = require("./db/init");
+import pool from "./db/pool.js";
+import { initOrderSchema } from "./db/init.js";
 
 const app = express();
 const PORT = process.env.PORT || 4002;
@@ -53,4 +53,4 @@ process.on("SIGTERM", async () => {
   }
 });
 
-module.exports = app;
+export default app;

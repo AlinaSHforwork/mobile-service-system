@@ -1,4 +1,4 @@
-const pool = require('./pool');
+import pool from './pool.js';
 
 async function initAuthSchema() {
   try {
@@ -74,4 +74,4 @@ async function initAuthSchema() {
   }
 }
 
-module.exports = { initAuthSchema };
+export { initAuthSchema };

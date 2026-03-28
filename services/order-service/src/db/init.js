@@ -1,4 +1,4 @@
-const pool = require('./pool');
+import pool from './pool.js';
 
 async function initOrderSchema() {
   try {
@@ -60,4 +60,4 @@ async function initOrderSchema() {
   }
 }
 
-module.exports = { initOrderSchema };
+export { initOrderSchema };

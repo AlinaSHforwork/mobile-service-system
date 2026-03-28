@@ -1,9 +1,9 @@
-const express = require("express");
-const cors = require("cors");
-const cookie = require("cookie");
-const crypto = require("crypto");
-const { createProxyMiddleware } = require("http-proxy-middleware");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import cookie from "cookie";
+import crypto from "crypto";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import "dotenv/config";
 
 const app = express();
 const PORT = process.env.PORT || 8000;

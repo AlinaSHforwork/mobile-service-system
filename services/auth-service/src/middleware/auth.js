@@ -1,6 +1,6 @@
-const { verifyAccessToken } = require("../utils/jwt");
-const User = require("../models/User");
-const Master = require("../models/Master");
+import { verifyAccessToken } from "../utils/jwt.js";
+import User from "../models/User.js";
+import Master from "../models/Master.js";
 
 const authenticate = async (req, res, next) => {
   try {
@@ -69,4 +69,4 @@ const requireRole = (...roles) => {
   };
 };
 
-module.exports = { authenticate, requireRole };
+export { authenticate, requireRole };

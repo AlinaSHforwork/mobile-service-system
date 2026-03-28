@@ -175,31 +175,12 @@ mobile-service-system/
    - API Gateway: http://localhost:8000
    - MongoDB: localhost:27017
 
-### Manual Setup (Development)
-
-1. **Install dependencies for all services**
-
-   ```bash
-   npm run install-all
-   ```
-
-2. **Start services with concurrently**
-
-   ```bash
-   npm start
-   ```
-
-   This will start:
-   - Auth Service on port 4001
-   - Order Service on port 4002
-   - API Gateway on port 8000
-   - Frontend on port 3000
-
 ---
 
 ## 🔐 Default Credentials
 
 ### Master (Technician) Account
+Can be created only by DB owner.
 
 ```
 Username: Master
@@ -251,15 +232,3 @@ Password: 12345678
 - `GET /` - Get all orders (master) or user's orders (client)
 - `PUT /:id` - Update order status
 - `DELETE /:id` - Delete order
-
----
-
----
-
-## 🧚‍♀️ Team
-
-| Member                 | Role                            |
-| ---------------------- | ------------------------------- |
-| **Shvyryd Alina**      | Team Lead, Full Stack Developer |
-| **Sherepera Kateryna** | Full Stack Developer            |
-| **Luzhetska Anna**     | Full Stack Developer            |
