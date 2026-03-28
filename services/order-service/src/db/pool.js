@@ -1,18 +1,16 @@
-import pg from 'pg';
+import pg from "pg";
 
 const { Pool } = pg;
 const { DATABASE_URL, PGSSL } = process.env;
-if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL is required');
-}
+if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: PGSSL === 'true' ? { rejectUnauthorized: false } : undefined,
+  ssl: PGSSL === "true" ? { rejectUnauthorized: false } : undefined,
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected PG pool error', err);
+pool.on("error", (err) => {
+  console.error("Unexpected PG pool error", err);
 });
 
 export default pool;

@@ -1,14 +1,38 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Helper to get CSRF token from cookies
 function getCsrfToken() {
-  if (typeof document === 'undefined') return null;
-  const cookies = document.cookie.split(';');
+  if (typeof document === "undefined") return null;
+  const cookies = document.cookie.split(";");
   for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'csrf-token') return decodeURIComponent(value);
+    const [name, value] = cookie.trim().split("=");
+    if (name === "csrf-token") return decodeURIComponent(value);
   }
   return null;
+}
+
+function getAccessToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("accessToken");
+}
+
+async function apiFetch(path, options = {}) {
+  const csrfToken = getCsrfToken();
+  const accessToken = getAccessToken();
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    ...(csrfToken && { "x-csrf-token": csrfToken }),
+    ...options.headers,
+  };
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+
+  return res.json();
 }
 
 class AuthAPI {
@@ -16,9 +40,9 @@ class AuthAPI {
     const csrfToken = getCsrfToken();
     const res = await fetch(`${API_URL}/api/auth/login`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken })
+        ...(csrfToken && { "x-csrf-token": csrfToken }),
       },
       credentials: "include",
       body: JSON.stringify({ username, password }),
@@ -30,9 +54,9 @@ class AuthAPI {
     const csrfToken = getCsrfToken();
     const res = await fetch(`${API_URL}/api/auth/register`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken })
+        ...(csrfToken && { "x-csrf-token": csrfToken }),
       },
       credentials: "include",
       body: JSON.stringify({ username, password }),
@@ -41,17 +65,10 @@ class AuthAPI {
   }
 
   async logout(refreshToken) {
-    const csrfToken = getCsrfToken();
-    const res = await fetch(`${API_URL}/api/auth/logout`, {
+    return apiFetch("/api/auth/logout", {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken })
-      },
-      credentials: "include",
       body: JSON.stringify({ refreshToken }),
     });
-    return res.json();
   }
 
   async me(accessToken) {
@@ -66,9 +83,9 @@ class AuthAPI {
     const csrfToken = getCsrfToken();
     const res = await fetch(`${API_URL}/api/auth/refresh`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken })
+        ...(csrfToken && { "x-csrf-token": csrfToken }),
       },
       credentials: "include",
       body: JSON.stringify({ refreshToken }),
@@ -77,4 +94,34 @@ class AuthAPI {
   }
 }
 
+class OrdersAPI {
+  async create(data) {
+    return apiFetch("/api/orders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async list({ search = "", status = "", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ search, status, page, limit });
+    return apiFetch(`/api/orders?${params}`);
+  }
+
+  async get(id) {
+    return apiFetch(`/api/orders/${id}`);
+  }
+
+  async update(id, data) {
+    return apiFetch(`/api/orders/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(id) {
+    return apiFetch(`/api/orders/${id}`, { method: "DELETE" });
+  }
+}
+
 export const authAPI = new AuthAPI();
+export const ordersAPI = new OrdersAPI();
