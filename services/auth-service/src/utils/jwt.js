@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+import jwt from "jsonwebtoken";
 
 const { JWT_SECRET, JWT_REFRESH_SECRET } = process.env;
 if (!JWT_SECRET) throw new Error("JWT_SECRET is required");
@@ -34,7 +34,7 @@ const verifyRefreshToken = (token) => {
   });
 };
 
-module.exports = {
+export {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,

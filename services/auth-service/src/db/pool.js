@@ -1,5 +1,6 @@
-const { Pool } = require('pg');
+import pg from 'pg';
 
+const { Pool } = pg;
 const { DATABASE_URL, PGSSL } = process.env;
 if (!DATABASE_URL) {
   throw new Error('DATABASE_URL is required');
@@ -14,4 +15,4 @@ pool.on('error', (err) => {
   console.error('Unexpected PG pool error', err);
 });
 
-module.exports = pool;
+export default pool;

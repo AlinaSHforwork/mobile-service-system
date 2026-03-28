@@ -1,11 +1,11 @@
-const { validationResult } = require("express-validator");
-const User = require("../models/User");
-const Master = require("../models/Master");
-const {
+import { validationResult } from "express-validator";
+import User from "../models/User.js";
+import Master from "../models/Master.js";
+import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
-} = require("../utils/jwt");
+} from "../utils/jwt.js";
 
 // POST /auth/login
 const login = async (req, res) => {
@@ -298,4 +298,4 @@ const verify = async (req, res) => {
   });
 };
 
-module.exports = { login, register, refresh, logout, me, verify };
+export { login, register, refresh, logout, me, verify };

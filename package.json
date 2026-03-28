@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "install-all": "npm install && cd services/auth-service && npm install && cd ../order-service && npm install && cd ../gateway && npm install && cd ../../frontend && npm install",
-    "start": "concurrently \"cd services/auth-service && npm start\" \"cd services/order-service && npm start\" \"cd services/gateway && npm start\" \"cd frontend && npm run build && npm start\"",
-    "prepare": "husky"
+    "start": "start only with docker"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

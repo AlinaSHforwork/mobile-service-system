@@ -1,5 +1,5 @@
-const bcrypt = require("bcryptjs");
-const pool = require("../db/pool");
+import bcrypt from "bcryptjs";
+import pool from "../db/pool.js";
 
 class UserModel {
   static async findOneByUsername(username, { withSensitive = false } = {}) {
@@ -111,4 +111,4 @@ class UserModel {
   }
 }
 
-module.exports = UserModel;
+export default UserModel;

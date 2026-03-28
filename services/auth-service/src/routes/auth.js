@@ -1,15 +1,15 @@
-const express = require("express");
-const { body } = require("express-validator");
-const rateLimit = require("express-rate-limit");
-const {
+import express from "express";
+import { body } from "express-validator";
+import rateLimit from "express-rate-limit";
+import {
   login,
   register,
   refresh,
   logout,
   me,
   verify,
-} = require("../controllers/authController");
-const { authenticate } = require("../middleware/auth");
+} from "../controllers/authController.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -58,4 +58,4 @@ router.post("/logout", authenticate, logout);
 router.get("/me", authenticate, me);
 router.get("/verify", verify);
 
-module.exports = router;
+export default router;
