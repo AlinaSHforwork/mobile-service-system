@@ -106,6 +106,11 @@ export const updateOrder = async (req, res) => {
     let updateData = {};
 
     if (req.user.role === "master") {
+      // Masters can only update orders assigned to them
+      if (order.assigned_to && order.assigned_to !== req.user.id) {
+        return res.status(403).json({ success: false, message: "This order is assigned to another master" });
+      }
+      
       const { status, technicianComment, cost } = req.body;
       if (status !== undefined) {
         if (!VALID_STATUSES.includes(status)) {
@@ -115,7 +120,10 @@ export const updateOrder = async (req, res) => {
       }
       if (technicianComment !== undefined) updateData.technicianComment = technicianComment;
       if (cost !== undefined) updateData.cost = cost;
-      updateData.assignedTo = req.user.id;
+      // Only set assignedTo if not already assigned
+      if (!order.assigned_to) {
+        updateData.assignedTo = req.user.id;
+      }
     } else {
       // Client can only update their own order if status is 'new'
       if (order.client_id !== req.user.id) {
@@ -163,6 +171,70 @@ export const deleteOrder = async (req, res) => {
     return res.json({ success: true, message: "Order deleted" });
   } catch (err) {
     console.error("deleteOrder error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// PUT /:id/assign — assign order to master (master only)
+export const assignOrder = async (req, res) => {
+  try {
+    // Only masters can assign/claim orders
+    if (req.user.role !== "master") {
+      return res.status(403).json({ success: false, message: "Only masters can assign orders" });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    // Update order to assign to current master
+    const updated = await Order.updateStatus(order.id, {
+      assignedTo: req.user.id,
+    });
+
+    return res.json({
+      success: true,
+      message: "Order assigned successfully",
+      data: { order: Order.toSafeObject(updated) },
+    });
+  } catch (err) {
+    console.error("assignOrder error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// GET /my/orders — get orders assigned to current master
+export const getMyOrders = async (req, res) => {
+  try {
+    if (req.user.role !== "master") {
+      return res.status(403).json({ success: false, message: "Only masters can view assigned orders" });
+    }
+
+    const { search = "", status = "", page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
+    const offset = (pageNum - 1) * limitNum;
+
+    const [orders, total] = await Promise.all([
+      Order.findByMasterId(req.user.id, { limit: limitNum, offset, search, status }),
+      Order.countByMasterId(req.user.id, { search, status }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        orders: orders.map(Order.toSafeObject),
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (err) {
+    console.error("getMyOrders error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

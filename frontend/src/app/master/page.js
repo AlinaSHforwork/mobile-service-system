@@ -7,9 +7,9 @@ import { ordersAPI } from "@/lib/api";
 
 const STATUS_META = {
   "new": { label: "New", color: "#6366f1", bg: "#eef2ff" },
-  "in progress": { label: "In Progress", color: "#f59e0b", bg: "#fffbeb" },
   "waiting customer response": { label: "Awaiting Client", color: "#8b5cf6", bg: "#f5f3ff" },
   "waiting spare parts": { label: "Awaiting Parts", color: "#06b6d4", bg: "#ecfeff" },
+  "in progress": { label: "In Progress", color: "#f59e0b", bg: "#fffbeb" },
   "failed": { label: "Failed", color: "#ef4444", bg: "#fef2f2" },
   "done": { label: "Done", color: "#10b981", bg: "#ecfdf5" },
 };
@@ -37,9 +37,11 @@ export default function MasterPage() {
   const router = useRouter();
 
   const [orders, setOrders] = useState([]);
+  const [allOrdersForCounts, setAllOrdersForCounts] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, totalPages: 1 });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [filterMode, setFilterMode] = useState("all"); // "all", "available", "my-orders"
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -56,19 +58,28 @@ export default function MasterPage() {
     setLoadingOrders(true);
     setError("");
     try {
-      const res = await ordersAPI.list({ search, status: statusFilter, page, limit: 15 });
+      let res;
+      if (filterMode === "my-orders") {
+        res = await ordersAPI.getMyOrders({ search, status: statusFilter, page, limit: 15 });
+      } else if (filterMode === "available") {
+        res = await ordersAPI.getAvailable({ search, status: statusFilter || "new", page, limit: 15 });
+      } else {
+        res = await ordersAPI.list({ search, status: statusFilter, page, limit: 15 });
+      }
+      
       if (res.success) {
         setOrders(res.data.orders);
         setPagination(res.data.pagination);
+        setAllOrdersForCounts(res.data.orders);
       } else {
-        setError(res.message || "Failed to load orders");
+        setError(res.message || "Failed to load orders")
       }
     } catch {
       setError("Network error");
     } finally {
       setLoadingOrders(false);
     }
-  }, [user, search, statusFilter, page]);
+  }, [user, search, statusFilter, page, filterMode]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -76,8 +87,8 @@ export default function MasterPage() {
 
   if (loading || !user) return <LoadingScreen />;
 
-  const urgentCount = orders.filter(o => o.status === "waiting customer response").length;
-  const newCount = orders.filter(o => o.status === "new").length;
+  const urgentCount = allOrdersForCounts.filter(o => o.status === "waiting customer response").length;
+  const newCount = allOrdersForCounts.filter(o => o.status === "new").length;
 
   return (
     <div style={{ minHeight: "100vh", background: "#0f0f1a", fontFamily: "'Outfit', 'DM Sans', sans-serif" }}>
@@ -144,7 +155,7 @@ export default function MasterPage() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
           {ALL_STATUSES.map(s => {
-            const count = orders.filter(o => o.status === s).length;
+            const count = allOrdersForCounts.filter(o => o.status === s).length;
             const meta = STATUS_META[s];
             return (
               <button
@@ -162,6 +173,32 @@ export default function MasterPage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Filter mode tabs */}
+        <div style={{
+          display: "flex", gap: "0.75rem", marginBottom: "1.25rem",
+          borderBottom: "1px solid #2d2d4e", paddingBottom: "0.75rem",
+        }}>
+          {[
+            { value: "all", label: "All Orders" },
+            { value: "available", label: "Available" },
+            { value: "my-orders", label: "My Orders" },
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => { setFilterMode(tab.value); setPage(1); }}
+              style={{
+                padding: "0.5rem 1rem", borderBottom: filterMode === tab.value ? "2px solid #6366f1" : "none",
+                color: filterMode === tab.value ? "#6366f1" : "#6b7280",
+                background: "transparent", border: "none", cursor: "pointer",
+                fontSize: "0.875rem", fontWeight: filterMode === tab.value ? 600 : 400,
+                transition: "all 0.15s",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Filters + search */}
@@ -220,7 +257,7 @@ export default function MasterPage() {
 
           {/* Table header */}
           <div style={{
-            display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr",
+            display: "grid", gridTemplateColumns: "2fr 1fr 1.5fr 1fr 1fr 1fr",
             padding: "0.75rem 1.5rem", borderBottom: "1px solid #2d2d4e",
           }}>
             {["Device / Issue", "Status", "Created", "Cost", "Action"].map(h => (
@@ -243,6 +280,7 @@ export default function MasterPage() {
               <MasterOrderRow
                 key={order.id}
                 order={order}
+                user={user}
                 isLast={i === orders.length - 1}
                 onEdit={() => router.push(`/master/order/${order.id}`)}
               />
@@ -276,23 +314,25 @@ export default function MasterPage() {
   );
 }
 
-function MasterOrderRow({ order, isLast, onEdit }) {
+function MasterOrderRow({ order, user, isLast, onEdit }) {
   return (
     <div
       style={{
-        display: "grid", gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr",
+        display: "grid", gridTemplateColumns: "2fr 1fr 1.5fr 1fr 1fr 1fr",
         padding: "1rem 1.5rem",
         borderBottom: isLast ? "none" : "1px solid #2d2d4e",
         alignItems: "center", cursor: "pointer", transition: "background 0.15s",
       }}
       onMouseEnter={e => e.currentTarget.style.background = "#1e1e35"}
       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-      onClick={onEdit}
     >
       <div>
         <p style={{ fontWeight: 700, color: "white", margin: 0, fontSize: "0.9rem" }}>{order.deviceModel}</p>
         <p style={{ color: "#6b7280", margin: 0, fontSize: "0.78rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "260px" }}>
           {order.issueDescription}
+        </p>
+        <p style={{ color: "#818cf8", margin: "0.25rem 0 0 0", fontSize: "0.75rem", fontWeight: 500 }}>
+          👤 {order.clientUsername}
         </p>
       </div>
       <StatusBadge status={order.status} />
@@ -300,17 +340,37 @@ function MasterOrderRow({ order, isLast, onEdit }) {
       <p style={{ color: order.cost ? "#10b981" : "#3d3d5e", margin: 0, fontSize: "0.8rem", fontWeight: 600 }}>
         {order.cost ? `$${parseFloat(order.cost).toFixed(2)}` : "—"}
       </p>
-      <button
-        onClick={e => { e.stopPropagation(); onEdit(); }}
-        style={{
-          padding: "0.35rem 0.85rem", background: "#1e1e45",
-          border: "1px solid #6366f1", borderRadius: "6px",
-          color: "#818cf8", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600,
-          width: "fit-content",
-        }}
-      >
-        Edit →
-      </button>
+      <div style={{ display: "flex", gap: "0.4rem" }} onClick={e => e.stopPropagation()}>
+        {!order.assignedTo ? (
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              const res = await ordersAPI.assign(order.id);
+              if (res.success) window.location.reload();
+            }}
+            style={{
+              padding: "0.35rem 0.75rem", background: "#6366f1",
+              border: "none", borderRadius: "6px", color: "white",
+              cursor: "pointer", fontSize: "0.75rem", fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Claim
+          </button>
+        ) : order.assignedTo === user.id ? (
+          <button
+            onClick={() => onEdit()}
+            style={{
+              padding: "0.35rem 0.85rem", background: "#1e1e45",
+              border: "1px solid #6366f1", borderRadius: "6px",
+              color: "#818cf8", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600,
+              width: "fit-content", whiteSpace: "nowrap",
+            }}
+          >
+            Edit →
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

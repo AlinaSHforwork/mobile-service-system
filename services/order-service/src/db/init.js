@@ -54,6 +54,23 @@ async function initOrderSchema() {
       before update on orders
       for each row execute function set_updated_at();
     `);
+
+    // Create messages table for chat
+    await pool.query(`
+      create table if not exists messages (
+        id uuid primary key default gen_random_uuid(),
+        order_id uuid not null references orders(id) on delete cascade,
+        sender_id uuid not null,
+        sender_role text not null check (sender_role in ('client', 'master')),
+        content text not null,
+        created_at timestamptz not null default now()
+      );
+    `);
+
+    // Create indexes for messages
+    await pool.query('create index if not exists idx_messages_order_id on messages(order_id);');
+    await pool.query('create index if not exists idx_messages_sender_id on messages(sender_id);');
+    
   } catch (err) {
     console.error("Error initializing order schema:", err.message);
     throw err;

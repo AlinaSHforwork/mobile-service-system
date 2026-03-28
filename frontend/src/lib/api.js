@@ -107,6 +107,16 @@ class OrdersAPI {
     return apiFetch(`/api/orders?${params}`);
   }
 
+  async getMyOrders({ search = "", status = "", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ search, status, page, limit });
+    return apiFetch(`/api/orders/my/orders?${params}`);
+  }
+
+  async getAvailable({ search = "", status = "new", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ search, status, page, limit });
+    return apiFetch(`/api/orders?${params}`);
+  }
+
   async get(id) {
     return apiFetch(`/api/orders/${id}`);
   }
@@ -118,8 +128,26 @@ class OrdersAPI {
     });
   }
 
+  async assign(id) {
+    return apiFetch(`/api/orders/${id}/assign`, {
+      method: "PUT",
+    });
+  }
+
   async delete(id) {
     return apiFetch(`/api/orders/${id}`, { method: "DELETE" });
+  }
+
+  async sendMessage(orderId, content) {
+    return apiFetch(`/api/orders/${orderId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async getMessages(orderId, { page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams({ page, limit });
+    return apiFetch(`/api/orders/${orderId}/messages?${params}`);
   }
 }
 

@@ -8,9 +8,9 @@ import { ordersAPI } from "@/lib/api";
 
 const ALL_STATUSES = [
   { value: "new", label: "New", color: "#6366f1", icon: "🆕" },
-  { value: "in progress", label: "In Progress", color: "#f59e0b", icon: "⚙️" },
   { value: "waiting customer response", label: "Awaiting Client", color: "#8b5cf6", icon: "💬" },
   { value: "waiting spare parts", label: "Awaiting Parts", color: "#06b6d4", icon: "📦" },
+  { value: "in progress", label: "In Progress", color: "#f59e0b", icon: "⚙️" },
   { value: "failed", label: "Failed", color: "#ef4444", icon: "❌" },
   { value: "done", label: "Done", color: "#10b981", icon: "✅" },
 ];
@@ -30,6 +30,11 @@ export default function MasterOrderEditPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  const [messages, setMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messageContent, setMessageContent] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -61,6 +66,22 @@ export default function MasterOrderEditPage() {
     fetchOrder();
   }, [user, id]);
 
+  useEffect(() => {
+    if (!user || !id || !order) return;
+    const fetchMessages = async () => {
+      setLoadingMessages(true);
+      try {
+        const res = await ordersAPI.getMessages(id);
+        if (res.success) setMessages(res.data.messages);
+      } catch {
+        console.error("Failed to load messages");
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+    fetchMessages();
+  }, [user, id, order]);
+
   const handleSave = async () => {
     setSaving(true);
     setSaveSuccess(false);
@@ -83,6 +104,24 @@ export default function MasterOrderEditPage() {
       setSaveError("Network error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageContent.trim()) return;
+    setSendingMessage(true);
+    try {
+      const res = await ordersAPI.sendMessage(id, messageContent);
+      if (res.success) {
+        setMessages([...messages, res.data.message]);
+        setMessageContent("");
+      } else {
+        alert(res.message || "Failed to send message");
+      }
+    } catch {
+      alert("Network error");
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -281,6 +320,84 @@ export default function MasterOrderEditPage() {
                   </>
                 ) : "💾 Save Changes"}
               </button>
+
+              {/* Chat Section */}
+              <div style={{ marginTop: "1.5rem", paddingTop: "1.5rem", borderTop: "1px solid #2d2d4e" }}>
+                <h3 style={{ fontSize: "0.78rem", fontWeight: 700, color: "#6366f1", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 1rem" }}>
+                  💬 Chat with {order?.clientUsername || "client"}
+                </h3>
+                
+                {/* Messages area */}
+                <div style={{
+                  background: "#0f0f1a", borderRadius: "8px", border: "1px solid #2d2d4e",
+                  height: "250px", overflowY: "auto", padding: "0.75rem",
+                  marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.6rem",
+                }}>
+                  {loadingMessages ? (
+                    <div style={{ textAlign: "center", padding: "2rem" }}>
+                      <div style={{ width: 20, height: 20, border: "2px solid #2d2d4e", borderTop: "2px solid #6366f1", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div style={{ textAlign: "center", color: "#6b7280", padding: "1rem" }}>
+                      <p style={{ fontSize: "0.8rem", margin: 0 }}>No messages yet.</p>
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          alignSelf: msg.senderRole === "master" ? "flex-end" : "flex-start",
+                          maxWidth: "85%",
+                          padding: "0.6rem 0.8rem",
+                          borderRadius: "8px",
+                          background: msg.senderRole === "master" ? "#6366f1" : "#2d2d4e",
+                          borderLeft: `2px solid ${msg.senderRole === "master" ? "#818cf8" : "#9ca3af"}`,
+                        }}
+                      >
+                        <p style={{ fontSize: "0.65rem", color: msg.senderRole === "master" ? "#c7d2fe" : "#9ca3af", margin: "0 0 0.2rem", fontWeight: 600 }}>
+                          {msg.senderName}
+                        </p>
+                        <p style={{ fontSize: "0.8rem", color: msg.senderRole === "master" ? "#f0f4ff" : "#d1d5db", margin: 0, wordWrap: "break-word" }}>
+                          {msg.content}
+                        </p>
+                        <p style={{ fontSize: "0.65rem", color: msg.senderRole === "master" ? "#a5b4fc" : "#6b7280", margin: "0.2rem 0 0" }}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Message input */}
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  <input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={messageContent}
+                    onChange={(e) => setMessageContent(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                    disabled={sendingMessage}
+                    style={{
+                      flex: 1, padding: "0.55rem 0.75rem", border: "1px solid #2d2d4e",
+                      borderRadius: "6px", fontSize: "0.8rem", outline: "none",
+                      background: "#0f0f1a", color: "white",
+                    }}
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={sendingMessage || !messageContent.trim()}
+                    style={{
+                      padding: "0.55rem 0.85rem", border: "none", borderRadius: "6px",
+                      background: "#6366f1", color: "white", fontWeight: 600,
+                      cursor: sendingMessage || !messageContent.trim() ? "not-allowed" : "pointer",
+                      opacity: sendingMessage || !messageContent.trim() ? 0.6 : 1,
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    {sendingMessage ? "..." : "Send"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

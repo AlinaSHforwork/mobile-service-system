@@ -8,9 +8,9 @@ import { ordersAPI } from "@/lib/api";
 
 const STATUS_META = {
   "new": { label: "New", color: "#6366f1", bg: "#eef2ff" },
-  "in progress": { label: "In Progress", color: "#f59e0b", bg: "#fffbeb" },
-  "waiting customer response": { label: "Awaiting You", color: "#8b5cf6", bg: "#f5f3ff" },
+  "waiting customer response": { label: "Awaiting Your Response", color: "#8b5cf6", bg: "#f5f3ff" },
   "waiting spare parts": { label: "Awaiting Parts", color: "#06b6d4", bg: "#ecfeff" },
+  "in progress": { label: "In Progress", color: "#f59e0b", bg: "#fffbeb" },
   "failed": { label: "Failed", color: "#ef4444", bg: "#fef2f2" },
   "done": { label: "Done", color: "#10b981", bg: "#ecfdf5" },
 };
@@ -315,6 +315,11 @@ function OrderRow({ order, isLast, onDelete, deleting }) {
           <p style={{ color: "#9ca3af", margin: 0, fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "320px" }}>
             {order.issueDescription}
           </p>
+          {order.masterName && (
+            <p style={{ color: "#8b5cf6", margin: "0.25rem 0 0 0", fontSize: "0.75rem", fontWeight: 500 }}>
+              🔧 {order.masterName}
+            </p>
+          )}
         </div>
       </div>
 
