@@ -2,7 +2,6 @@ import { validationResult } from "express-validator";
 import Message from "../models/Message.js";
 import Order from "../models/Order.js";
 
-// POST /:orderId/messages — add message to order chat
 export const createMessage = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -13,13 +12,11 @@ export const createMessage = async (req, res) => {
     const { content } = req.body;
     const { orderId } = req.params;
 
-    // Verify order exists
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // Verify user has access to this order
     if (req.user.role === "client" && order.client_id !== req.user.id) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
@@ -45,7 +42,6 @@ export const createMessage = async (req, res) => {
   }
 };
 
-// GET /:orderId/messages — get message history for an order
 export const getMessages = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -54,13 +50,11 @@ export const getMessages = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
-    // Verify order exists
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // Verify user has access to this order
     if (req.user.role === "client" && order.client_id !== req.user.id) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }

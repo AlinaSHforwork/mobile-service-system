@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
+import SettingsPanel from "@/components/SettingsPanel";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("login");
@@ -16,6 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const { login, register, user, loading: authLoading } = useAuth();
+  const { t } = useI18n();
   const router = useRouter();
 
   useEffect(() => {
@@ -26,14 +29,11 @@ export default function LoginPage() {
 
   const validate = () => {
     const errors = {};
-    if (!username.trim()) errors.username = "Username is required";
-    else if (username.length < 3)
-      errors.username = "Username must be at least 3 characters";
-    if (!password) errors.password = "Password is required";
-    else if (mode === "register" && password.length < 6)
-      errors.password = "Password must be at least 6 characters";
-    if (mode === "register" && password !== confirmPassword)
-      errors.confirmPassword = "Passwords do not match";
+    if (!username.trim()) errors.username = t("usernameRequired");
+    else if (username.length < 3) errors.username = t("usernameTooShort");
+    if (!password) errors.password = t("passwordRequired");
+    else if (mode === "register" && password.length < 6) errors.password = t("passwordTooShort");
+    if (mode === "register" && password !== confirmPassword) errors.confirmPassword = t("passwordMismatch");
     return errors;
   };
 
@@ -43,38 +43,27 @@ export default function LoginPage() {
     setFieldErrors({});
 
     const errors = validate();
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
+    if (Object.keys(errors).length > 0) { setFieldErrors(errors); return; }
 
     setLoading(true);
     try {
       let result;
-      if (mode === "login") {
-        result = await login(username.trim(), password);
-      } else {
-        result = await register(username.trim(), password);
-      }
+      if (mode === "login") result = await login(username.trim(), password);
+      else result = await register(username.trim(), password);
 
       if (result.success) {
-        router.replace(
-          result.data.user.role === "master" ? "/master" : "/client",
-        );
+        router.replace(result.data.user.role === "master" ? "/master" : "/client");
       } else {
-        // Handle structured errors from express-validator
         if (result.errors && Array.isArray(result.errors)) {
           const fe = {};
-          result.errors.forEach((e) => {
-            fe[e.path] = e.msg;
-          });
+          result.errors.forEach((e) => { fe[e.path] = e.msg; });
           setFieldErrors(fe);
         } else {
           setError(result.message || "Something went wrong");
         }
       }
     } catch {
-      setError("Network error. Please check your connection.");
+      setError(t("networkError"));
     } finally {
       setLoading(false);
     }
@@ -93,576 +82,215 @@ export default function LoginPage() {
         padding: "1rem",
       }}
     >
+      {/* Settings top-right */}
+      <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 20 }}>
+        <SettingsPanel />
+      </div>
+
       <div
         className="animate-fade-in"
         style={{
-          background: "white",
+          background: "var(--surface)",
           borderRadius: "1.25rem",
           padding: "2.5rem",
           width: "100%",
           maxWidth: "420px",
-          boxShadow: "0 8px 40px rgba(79,70,229,0.12)",
+          boxShadow: "var(--shadow-lg)",
+          border: "1px solid var(--border)",
         }}
       >
         {/* Icon */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "1.25rem",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "1.25rem" }}>
           <div
             style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "50%",
-              background: "var(--primary)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              width: 56, height: 56, borderRadius: "50%",
+              background: "linear-gradient(135deg, var(--primary), var(--accent))",
+              display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
               <circle cx="12" cy="18" r="1" fill="white" stroke="none" />
             </svg>
           </div>
         </div>
 
-        <h1
-          style={{
-            textAlign: "center",
-            fontSize: "1.5rem",
-            fontWeight: 800,
-            color: "var(--text)",
-            marginBottom: "0.25rem",
-          }}
-        >
-          {mode === "login" ? "Welcome Back" : "Create Account"}
+        <h1 style={{ textAlign: "center", fontSize: "1.5rem", fontWeight: 800, color: "var(--text)", marginBottom: "0.25rem" }}>
+          {mode === "login" ? t("welcomeBack") : t("createAccount")}
         </h1>
-        <p
-          style={{
-            textAlign: "center",
-            color: "var(--text-muted)",
-            fontSize: "0.875rem",
-            marginBottom: "1.75rem",
-          }}
-        >
-          {mode === "login"
-            ? "Sign in to access your account"
-            : "Register as a new client"}
+        <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.75rem" }}>
+          {mode === "login" ? t("signInSub") : t("registerSub")}
         </p>
 
-        {/* Error banner */}
         {error && (
-          <div
-            style={{
-              background: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: "0.5rem",
-              padding: "0.75rem 1rem",
-              marginBottom: "1rem",
-              color: "var(--error)",
-              fontSize: "0.875rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
-            }}
-          >
-            <span>⚠️</span> {error}
+          <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger)", borderRadius: "0.5rem", padding: "0.75rem 1rem", marginBottom: "1rem", color: "var(--danger)", fontSize: "0.875rem" }}>
+            ⚠️ {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate autoComplete="on">
           {/* Username */}
           <div style={{ marginBottom: "1rem" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                color: "var(--text)",
-                marginBottom: "0.375rem",
-              }}
-            >
-              Username
+            <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", marginBottom: "0.375rem" }}>
+              {t("username")}
             </label>
             <div style={{ position: "relative" }}>
-              <span
-                style={{
-                  position: "absolute",
-                  left: "0.875rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--text-muted)",
-                }}
-              >
+              <span style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
                 <UserIcon />
               </span>
               <input
                 type="text"
                 value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setFieldErrors((p) => ({ ...p, username: "" }));
-                }}
-                placeholder="Enter your username"
+                onChange={(e) => { setUsername(e.target.value); setFieldErrors((p) => ({ ...p, username: "" })); }}
+                placeholder={t("username")}
                 autoComplete="username"
                 style={{
-                  width: "100%",
-                  padding: "0.625rem 0.875rem 0.625rem 2.5rem",
-                  border: `1px solid ${fieldErrors.username ? "var(--error)" : "var(--border)"}`,
-                  borderRadius: "0.5rem",
-                  fontSize: "0.925rem",
-                  outline: "none",
-                  color: "var(--text)",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.2s",
+                  width: "100%", padding: "0.625rem 0.875rem 0.625rem 2.5rem",
+                  border: `1px solid ${fieldErrors.username ? "var(--danger)" : "var(--input-border)"}`,
+                  borderRadius: "0.5rem", fontSize: "0.925rem", outline: "none",
+                  color: "var(--text)", background: "var(--input-bg)", boxSizing: "border-box",
+                  fontFamily: "inherit",
                 }}
                 onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                onBlur={(e) =>
-                  (e.target.style.borderColor = fieldErrors.username
-                    ? "var(--error)"
-                    : "var(--border)")
-                }
+                onBlur={(e) => (e.target.style.borderColor = fieldErrors.username ? "var(--danger)" : "var(--input-border)")}
               />
             </div>
-            {fieldErrors.username && (
-              <p
-                style={{
-                  color: "var(--error)",
-                  fontSize: "0.8rem",
-                  marginTop: "0.25rem",
-                }}
-              >
-                {fieldErrors.username}
-              </p>
-            )}
+            {fieldErrors.username && <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>{fieldErrors.username}</p>}
           </div>
 
           {/* Password */}
-          <div
-            style={{ marginBottom: mode === "register" ? "1rem" : "1.5rem" }}
-          >
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.875rem",
-                fontWeight: 600,
-                color: "var(--text)",
-                marginBottom: "0.375rem",
-              }}
-            >
-              Password
+          <div style={{ marginBottom: mode === "register" ? "1rem" : "1.5rem" }}>
+            <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", marginBottom: "0.375rem" }}>
+              {t("password")}
             </label>
             <div style={{ position: "relative" }}>
-              <span
-                style={{
-                  position: "absolute",
-                  left: "0.875rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--text-muted)",
-                }}
-              >
+              <span style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
                 <LockIcon />
               </span>
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setFieldErrors((p) => ({ ...p, password: "" }));
-                }}
-                placeholder="Enter your password"
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
+                onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: "" })); }}
+                placeholder={t("password")}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 style={{
-                  width: "100%",
-                  padding: "0.625rem 2.75rem 0.625rem 2.5rem",
-                  border: `1px solid ${fieldErrors.password ? "var(--error)" : "var(--border)"}`,
-                  borderRadius: "0.5rem",
-                  fontSize: "0.925rem",
-                  outline: "none",
-                  color: "var(--text)",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.2s",
+                  width: "100%", padding: "0.625rem 2.75rem 0.625rem 2.5rem",
+                  border: `1px solid ${fieldErrors.password ? "var(--danger)" : "var(--input-border)"}`,
+                  borderRadius: "0.5rem", fontSize: "0.925rem", outline: "none",
+                  color: "var(--text)", background: "var(--input-bg)", boxSizing: "border-box",
+                  fontFamily: "inherit",
                 }}
                 onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
-                onBlur={(e) =>
-                  (e.target.style.borderColor = fieldErrors.password
-                    ? "var(--error)"
-                    : "var(--border)")
-                }
+                onBlur={(e) => (e.target.style.borderColor = fieldErrors.password ? "var(--danger)" : "var(--input-border)")}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((p) => !p)}
-                style={{
-                  position: "absolute",
-                  right: "0.875rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
-                  padding: 0,
-                  display: "flex",
-                }}
-              >
+              <button type="button" onClick={() => setShowPassword((p) => !p)}
+                style={{ position: "absolute", right: "0.875rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}>
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
-            {fieldErrors.password && (
-              <p
-                style={{
-                  color: "var(--error)",
-                  fontSize: "0.8rem",
-                  marginTop: "0.25rem",
-                }}
-              >
-                {fieldErrors.password}
-              </p>
-            )}
+            {fieldErrors.password && <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>{fieldErrors.password}</p>}
           </div>
 
-          {/* Confirm password (register only) */}
+          {/* Confirm Password */}
           {mode === "register" && (
             <div style={{ marginBottom: "1.5rem" }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  color: "var(--text)",
-                  marginBottom: "0.375rem",
-                }}
-              >
-                Confirm Password
+              <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", marginBottom: "0.375rem" }}>
+                {t("confirmPassword")}
               </label>
               <div style={{ position: "relative" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: "0.875rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <span style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
                   <LockIcon />
                 </span>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setFieldErrors((p) => ({ ...p, confirmPassword: "" }));
-                  }}
-                  placeholder="Re-enter your password"
+                  onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors((p) => ({ ...p, confirmPassword: "" })); }}
+                  placeholder={t("confirmPassword")}
                   autoComplete="new-password"
                   style={{
-                    width: "100%",
-                    padding: "0.625rem 0.875rem 0.625rem 2.5rem",
-                    border: `1px solid ${fieldErrors.confirmPassword ? "var(--error)" : "var(--border)"}`,
-                    borderRadius: "0.5rem",
-                    fontSize: "0.925rem",
-                    outline: "none",
-                    color: "var(--text)",
-                    boxSizing: "border-box",
-                    transition: "border-color 0.2s",
+                    width: "100%", padding: "0.625rem 0.875rem 0.625rem 2.5rem",
+                    border: `1px solid ${fieldErrors.confirmPassword ? "var(--danger)" : "var(--input-border)"}`,
+                    borderRadius: "0.5rem", fontSize: "0.925rem", outline: "none",
+                    color: "var(--text)", background: "var(--input-bg)", boxSizing: "border-box",
+                    fontFamily: "inherit",
                   }}
-                  onFocus={(e) =>
-                    (e.target.style.borderColor = "var(--primary)")
-                  }
-                  onBlur={(e) =>
-                    (e.target.style.borderColor = fieldErrors.confirmPassword
-                      ? "var(--error)"
-                      : "var(--border)")
-                  }
+                  onFocus={(e) => (e.target.style.borderColor = "var(--primary)")}
+                  onBlur={(e) => (e.target.style.borderColor = fieldErrors.confirmPassword ? "var(--danger)" : "var(--input-border)")}
                 />
               </div>
-              {fieldErrors.confirmPassword && (
-                <p
-                  style={{
-                    color: "var(--error)",
-                    fontSize: "0.8rem",
-                    marginTop: "0.25rem",
-                  }}
-                >
-                  {fieldErrors.confirmPassword}
-                </p>
-              )}
+              {fieldErrors.confirmPassword && <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>{fieldErrors.confirmPassword}</p>}
             </div>
           )}
 
-          {/* Submit button */}
           <button
             type="submit"
             disabled={loading}
             style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: loading ? "var(--primary-light)" : "var(--primary)",
-              color: "white",
-              border: "none",
-              borderRadius: "0.5rem",
-              fontWeight: 700,
-              fontSize: "1rem",
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "background 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) e.target.style.background = "var(--primary-dark)";
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) e.target.style.background = "var(--primary)";
+              width: "100%", padding: "0.75rem",
+              background: loading ? "var(--primary-light)" : "linear-gradient(135deg, var(--primary), var(--accent))",
+              color: "white", border: "none", borderRadius: "0.5rem",
+              fontWeight: 700, fontSize: "1rem", cursor: loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+              fontFamily: "inherit",
             }}
           >
             {loading ? (
               <>
-                <span
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    border: "2px solid rgba(255,255,255,0.4)",
-                    borderTop: "2px solid white",
-                    borderRadius: "50%",
-                    animation: "spin 0.8s linear infinite",
-                    display: "inline-block",
-                  }}
-                />
-                {mode === "login" ? "Signing in..." : "Creating account..."}
+                <span style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.4)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
+                {mode === "login" ? t("loggingIn") : t("registering")}
               </>
-            ) : mode === "login" ? (
-              "Log In"
-            ) : (
-              "Create Account"
-            )}
+            ) : mode === "login" ? t("login") : t("register")}
           </button>
         </form>
 
         {/* Demo credentials */}
         {mode === "login" && (
-          <div
-            style={{
-              marginTop: "1.25rem",
-              padding: "0.75rem",
-              background: "#f8f7ff",
-              borderRadius: "0.5rem",
-              textAlign: "center",
-            }}
-          >
-            <p
-              style={{
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                color: "var(--text)",
-                marginBottom: "0.25rem",
-              }}
-            >
-              Demo credentials:
-            </p>
-            <p
-              style={{
-                fontSize: "0.78rem",
-                color: "var(--primary)",
-                margin: "0.125rem 0",
-              }}
-            >
-              Master access: Master / 12345678
-            </p>
-            <p
-              style={{
-                fontSize: "0.78rem",
-                color: "var(--primary)",
-                margin: "0.125rem 0",
-              }}
-            >
-              Client access: any username / any password
-            </p>
+          <div style={{ marginTop: "1.25rem", padding: "0.75rem", background: "var(--primary-bg)", borderRadius: "0.5rem", textAlign: "center", border: "1px solid var(--border)" }}>
+            <p style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.25rem" }}>{t("demoCredentials")}</p>
+            <p style={{ fontSize: "0.78rem", color: "var(--primary)", margin: "0.125rem 0" }}>{t("masterAccess")}</p>
+            <p style={{ fontSize: "0.78rem", color: "var(--primary)", margin: "0.125rem 0" }}>{t("clientAccess")}</p>
           </div>
         )}
 
         {/* Toggle mode */}
         <div style={{ marginTop: "1.25rem", textAlign: "center" }}>
           <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-            {mode === "login"
-              ? "Don't have an account? "
-              : "Already have an account? "}
+            {mode === "login" ? t("noAccount") : t("hasAccount")}{" "}
           </span>
           <button
-            onClick={() => {
-              setMode(mode === "login" ? "register" : "login");
-              setError("");
-              setFieldErrors({});
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: "var(--primary)",
-              fontWeight: 700,
-              fontSize: "0.875rem",
-              cursor: "pointer",
-              padding: 0,
-            }}
+            onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setFieldErrors({}); }}
+            style={{ background: "none", border: "none", color: "var(--primary)", fontWeight: 700, fontSize: "0.875rem", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
           >
-            {mode === "login" ? "Register" : "Log In"}
+            {mode === "login" ? t("register") : t("login")}
           </button>
         </div>
 
-        {/* Back to home */}
         <div style={{ marginTop: "0.75rem", textAlign: "center" }}>
-          <Link
-            href="/"
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "0.8rem",
-              textDecoration: "none",
-            }}
-          >
-            ← Back to home
+          <Link href="/" style={{ color: "var(--text-muted)", fontSize: "0.8rem", textDecoration: "none" }}>
+            {t("backHome")}
           </Link>
         </div>
       </div>
-
-      <button
-        style={{
-          position: "fixed",
-          bottom: "1.5rem",
-          right: "1.5rem",
-          width: "40px",
-          height: "40px",
-          borderRadius: "50%",
-          background: "#1e1b4b",
-          color: "white",
-          border: "none",
-          fontSize: "1.1rem",
-          fontWeight: 700,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        ?
-      </button>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
 
 function LoadingScreen() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg)",
-      }}
-    >
-      <div
-        style={{
-          width: "40px",
-          height: "40px",
-          border: "3px solid var(--border)",
-          borderTop: "3px solid var(--primary)",
-          borderRadius: "50%",
-          animation: "spin 0.8s linear infinite",
-        }}
-      />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <div style={{ width: 40, height: 40, border: "3px solid var(--border)", borderTop: "3px solid var(--primary)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
     </div>
   );
 }
-
 function UserIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>;
 }
-
 function LockIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0110 0v4" />
-    </svg>
-  );
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>;
 }
-
 function EyeIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>;
 }
-
 function EyeOffIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>;
 }

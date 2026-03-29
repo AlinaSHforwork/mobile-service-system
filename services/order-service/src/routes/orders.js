@@ -43,7 +43,6 @@ const messageValidation = [
   body("content").trim().notEmpty().withMessage("Message content is required").isLength({ min: 1, max: 2000 }),
 ];
 
-// All routes require authentication
 router.use(authenticate);
 
 router.post("/", createLimiter, requireRole("client"), createValidation, createOrder);
@@ -53,8 +52,6 @@ router.get("/:id", param("id").isUUID(), getOrder);
 router.put("/:id", requireRole("master", "client"), updateValidation, updateOrder);
 router.put("/:id/assign", requireRole("master"), assignOrder);
 router.delete("/:id", param("id").isUUID(), deleteOrder);
-
-// Message routes
 router.post("/:orderId/messages", messageValidation, createMessage);
 router.get("/:orderId/messages", param("orderId").isUUID(), getMessages);
 

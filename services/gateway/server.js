@@ -8,7 +8,6 @@ import "dotenv/config";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// CORS
 app.use(
   cors({
     origin: true,
@@ -18,7 +17,6 @@ app.use(
   }),
 );
 
-// CSRF double submit cookie strategy
 const CSRF_SECRET = process.env.CSRF_SECRET;
 if (!CSRF_SECRET) throw new Error('CSRF_SECRET is required');
 app.use((req, res, next) => {
@@ -34,7 +32,6 @@ app.use((req, res, next) => {
       maxAge: 60 * 60 * 24,
     }));
   }
-  // Validate on state-changing methods
   if (["POST","PUT","PATCH","DELETE"].includes(req.method)) {
     const headerToken = req.headers["x-csrf-token"];
     const cookieToken = cookies["csrf-token"]; 
@@ -48,8 +45,6 @@ app.use((req, res, next) => {
 const AUTH_URL = process.env.AUTH_SERVICE_URL;
 const ORDER_URL = process.env.ORDER_SERVICE_URL;
 
-// Auth proxy
-// /api/auth/login  →  http://auth-service:4001/login
 app.use(
   "/api/auth",
   createProxyMiddleware({
@@ -67,7 +62,6 @@ app.use(
   }),
 );
 
-// Order proxy
 app.use(
   "/api/orders",
   createProxyMiddleware({
