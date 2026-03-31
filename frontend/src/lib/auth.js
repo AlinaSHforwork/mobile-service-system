@@ -45,7 +45,6 @@ export function AuthProvider({ children }) {
       if (result.success) {
         setUser(result.data.user);
       } else if (refreshToken) {
-        // Try to refresh
         const refreshResult = await authAPI.refresh(refreshToken);
         if (refreshResult.success) {
           setTokens(
@@ -95,7 +94,6 @@ export function AuthProvider({ children }) {
     try {
       await authAPI.logout(refreshToken);
     } catch {
-      // Ignore errors, clear locally anyway
     }
     clearTokens();
     setUser(null);

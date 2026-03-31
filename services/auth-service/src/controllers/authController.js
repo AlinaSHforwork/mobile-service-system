@@ -7,7 +7,6 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 
-// POST /auth/login
 const login = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -17,7 +16,6 @@ const login = async (req, res) => {
 
     const { username, password } = req.body;
 
-    // Check masters table first
     const master = await Master.findOneByUsername(username, { withSensitive: true });
 
     if (master) {
@@ -29,8 +27,6 @@ const login = async (req, res) => {
 
       const isMatch = await Master.comparePassword(master, password);
       if (!isMatch) {
-        // Wrong password — do NOT fall through to client lookup,
-        // just return generic invalid credentials message.
         return res
           .status(401)
           .json({ success: false, message: "Invalid username or password" });
@@ -58,7 +54,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Client login 
     const user = await User.findOneByUsername(username, { withSensitive: true });
 
     if (!user) {
@@ -114,7 +109,6 @@ const login = async (req, res) => {
   }
 };
 
-// POST /auth/register  (client registration only)
 const register = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -124,7 +118,6 @@ const register = async (req, res) => {
 
     const { username, password } = req.body;
 
-    // Prevent registering with a username that belongs to any master
     const existingMaster = await Master.findOneByUsername(username);
     if (existingMaster) {
       return res
@@ -162,7 +155,6 @@ const register = async (req, res) => {
   }
 };
 
-// POST /auth/refresh
 const refresh = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -181,7 +173,6 @@ const refresh = async (req, res) => {
         .json({ success: false, message: "Invalid or expired refresh token" });
     }
 
-    // Master refresh
     if (decoded.role === "master") {
       const master = await Master.findById(decoded.id);
       if (!master || !master.is_active) {
@@ -203,7 +194,6 @@ const refresh = async (req, res) => {
       });
     }
 
-    // Client refresh
     const user = await User.findById(decoded.id, { withSensitive: true });
     if (!user || !user.is_active) {
       return res
@@ -240,7 +230,6 @@ const refresh = async (req, res) => {
   }
 };
 
-// POST /auth/logout
 const logout = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -256,7 +245,6 @@ const logout = async (req, res) => {
           }
         }
       } catch {
-        // Token invalid — still return success
       }
     }
 
@@ -267,7 +255,6 @@ const logout = async (req, res) => {
   }
 };
 
-// GET /me
 const me = async (req, res) => {
   try {
     if (req.user.role === "master") {
@@ -286,7 +273,6 @@ const me = async (req, res) => {
   }
 };
 
-// GET /verify 
 const verify = async (req, res) => {
   return res.json({
     success: true,

@@ -14,19 +14,15 @@ const PORT = process.env.PORT || 4001;
 
 app.use(helmet());
 
-// CORS
 app.use(cors({ origin: true, credentials: true }));
 
-// Body parsing
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// Logging
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("dev"));
 }
 
-// Rate limiting
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
@@ -35,7 +31,6 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-// Routes
 app.use("/", authRoutes);
 
 app.get("/health", (req, res) => {

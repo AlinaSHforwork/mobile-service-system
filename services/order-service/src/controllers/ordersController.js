@@ -1,7 +1,6 @@
 import { validationResult } from "express-validator";
 import Order, { VALID_STATUSES } from "../models/Order.js";
 
-// POST / — create order (client only)
 export const createOrder = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -31,8 +30,6 @@ export const createOrder = async (req, res) => {
   }
 };
 
-// GET / — list orders
-// Masters see all; clients see their own
 export const getOrders = async (req, res) => {
   try {
     const { search = "", status = "", page = 1, limit = 20 } = req.query;
@@ -72,14 +69,12 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// GET /:id — get single order
 export const getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
-    // Clients can only view their own orders
     if (req.user.role === "client" && order.client_id !== req.user.id) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
@@ -90,7 +85,6 @@ export const getOrder = async (req, res) => {
   }
 };
 
-// PUT /:id — update order (master only for status/comment; client can't update)
 export const updateOrder = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -106,7 +100,6 @@ export const updateOrder = async (req, res) => {
     let updateData = {};
 
     if (req.user.role === "master") {
-      // Masters can only update orders assigned to them
       if (order.assigned_to && order.assigned_to !== req.user.id) {
         return res.status(403).json({ success: false, message: "This order is assigned to another master" });
       }
@@ -120,12 +113,10 @@ export const updateOrder = async (req, res) => {
       }
       if (technicianComment !== undefined) updateData.technicianComment = technicianComment;
       if (cost !== undefined) updateData.cost = cost;
-      // Only set assignedTo if not already assigned
       if (!order.assigned_to) {
         updateData.assignedTo = req.user.id;
       }
     } else {
-      // Client can only update their own order if status is 'new'
       if (order.client_id !== req.user.id) {
         return res.status(403).json({ success: false, message: "Access denied" });
       }
@@ -133,7 +124,6 @@ export const updateOrder = async (req, res) => {
         return res.status(400).json({ success: false, message: "Order can only be edited when status is 'new'" });
       }
       const { deviceModel, osVersion, dateOfPurchase, issueDescription } = req.body;
-      // Clients update basic info — we'll handle this via a raw query
       const res2 = await import("../db/pool.js").then(m => m.default.query(
         `update orders set device_model=$1, os_version=$2, date_of_purchase=$3, issue_description=$4 where id=$5 returning *`,
         [deviceModel || order.device_model, osVersion || order.os_version, dateOfPurchase || order.date_of_purchase, issueDescription || order.issue_description, order.id]
@@ -149,8 +139,6 @@ export const updateOrder = async (req, res) => {
   }
 };
 
-// DELETE /:id — delete order
-// Masters can delete any; clients can only delete their own 'new' orders
 export const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -175,10 +163,8 @@ export const deleteOrder = async (req, res) => {
   }
 };
 
-// PUT /:id/assign — assign order to master (master only)
 export const assignOrder = async (req, res) => {
   try {
-    // Only masters can assign/claim orders
     if (req.user.role !== "master") {
       return res.status(403).json({ success: false, message: "Only masters can assign orders" });
     }
@@ -188,7 +174,6 @@ export const assignOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // Update order to assign to current master
     const updated = await Order.updateStatus(order.id, {
       assignedTo: req.user.id,
     });
@@ -204,7 +189,6 @@ export const assignOrder = async (req, res) => {
   }
 };
 
-// GET /my/orders — get orders assigned to current master
 export const getMyOrders = async (req, res) => {
   try {
     if (req.user.role !== "master") {

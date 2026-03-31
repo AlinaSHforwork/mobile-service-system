@@ -2,10 +2,8 @@ import pool from './pool.js';
 
 async function initAuthSchema() {
   try {
-    // Create pgcrypto extension first
     await pool.query('create extension if not exists pgcrypto;');
 
-    // Create users table
     await pool.query(`
       create table if not exists users (
         id uuid primary key default gen_random_uuid(),
@@ -22,7 +20,6 @@ async function initAuthSchema() {
       );
     `);
 
-    // Create masters table 
     await pool.query(`
       create table if not exists masters (
         id uuid primary key default gen_random_uuid(),
@@ -36,12 +33,10 @@ async function initAuthSchema() {
       );
     `);
 
-    // Create indexes on masters
     await pool.query(`
       create index if not exists idx_masters_username on masters(username);
     `);
 
-    // Create trigger function 
     await pool.query(`
       create or replace function set_updated_at()
       returns trigger as $$
@@ -52,7 +47,6 @@ async function initAuthSchema() {
       $$ language plpgsql;
     `);
 
-    // Triggers for users
     await pool.query(`
       drop trigger if exists trg_users_updated_at on users;
       create trigger trg_users_updated_at
@@ -60,7 +54,6 @@ async function initAuthSchema() {
       for each row execute function set_updated_at();
     `);
 
-    // Triggers for masters
     await pool.query(`
       drop trigger if exists trg_masters_updated_at on masters;
       create trigger trg_masters_updated_at

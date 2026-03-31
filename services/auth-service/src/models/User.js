@@ -45,7 +45,6 @@ class UserModel {
     const MAX_ATTEMPTS = 5;
     const LOCK_TIME_MS = 15 * 60 * 1000;
 
-    // if lock expired, reset
     if (user.lock_until && new Date(user.lock_until).getTime() < Date.now()) {
       await pool.query(
         `update users set login_attempts = 1, lock_until = null where id = $1`,
@@ -81,7 +80,18 @@ class UserModel {
 
   static async addRefreshToken(userId, token) {
     await pool.query(
-      `update users set refresh_tokens = (select case when array_length(refresh_tokens,1) >= 5 then (array_append(slice.refresh_tokens, $2)) else array_append(refresh_tokens, $2) end from (select coalesce(refresh_tokens, '{}') as refresh_tokens from users where id=$1) slice) where id=$1`,
+      `update users
+         set refresh_tokens = (
+           select array_agg(t order by ordinality desc)
+           from (
+             select unnest(coalesce(refresh_tokens, '{}')) as t,
+                    generate_subscripts(coalesce(refresh_tokens, '{}'), 1) as ordinality
+             from users
+             where id = $1
+             limit 4
+           ) sub
+         ) || array[$2]::text[]
+       where id = $1`,
       [userId, token],
     );
   }

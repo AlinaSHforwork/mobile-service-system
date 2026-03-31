@@ -1,11 +1,15 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const REQUEST_TIMEOUT_MS = 15_000;
 
 function getCsrfToken() {
   if (typeof document === "undefined") return null;
   const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split("=");
-    if (name === "csrf-token") return decodeURIComponent(value);
+  for (const cookie of cookies) {
+    const [name, ...rest] = cookie.trim().split("=");
+    if (name === "csrf-token") {
+      const value = decodeURIComponent(rest.join("="));
+      if (/^[0-9a-f]{64}$/i.test(value)) return value;
+    }
   }
   return null;
 }
@@ -26,45 +30,61 @@ async function apiFetch(path, options = {}) {
     ...options.headers,
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  return res.json();
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers,
+      credentials: "include",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    return res.json();
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. Please check your connection.");
+    }
+    throw err;
+  }
 }
 
 class AuthAPI {
-  async login(username, password) {
+  async _authPost(endpoint, body) {
     const csrfToken = getCsrfToken();
-    const res = await fetch(`${API_URL}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken }),
-      },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
-    return res.json();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(csrfToken && { "x-csrf-token": csrfToken }),
+        },
+        credentials: "include",
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return res.json();
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === "AbortError") throw new Error("Request timed out.");
+      throw err;
+    }
   }
 
-  async register(username, password) {
-    const csrfToken = getCsrfToken();
-    const res = await fetch(`${API_URL}/api/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken }),
-      },
-      credentials: "include",
-      body: JSON.stringify({ username, password }),
-    });
-    return res.json();
+  login(username, password) {
+    return this._authPost("/api/auth/login", { username, password });
   }
 
-  async logout(refreshToken) {
+  register(username, password) {
+    return this._authPost("/api/auth/register", { username, password });
+  }
+
+  logout(refreshToken) {
     return apiFetch("/api/auth/logout", {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
@@ -72,81 +92,85 @@ class AuthAPI {
   }
 
   async me(accessToken) {
-    const res = await fetch(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      credentials: "include",
-    });
-    return res.json();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: "include",
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      return res.json();
+    } catch (err) {
+      clearTimeout(timer);
+      if (err.name === "AbortError") throw new Error("Request timed out.");
+      throw err;
+    }
   }
 
-  async refresh(refreshToken) {
-    const csrfToken = getCsrfToken();
-    const res = await fetch(`${API_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(csrfToken && { "x-csrf-token": csrfToken }),
-      },
-      credentials: "include",
-      body: JSON.stringify({ refreshToken }),
-    });
-    return res.json();
+  refresh(refreshToken) {
+    return this._authPost("/api/auth/refresh", { refreshToken });
   }
 }
 
 class OrdersAPI {
-  async create(data) {
-    return apiFetch("/api/orders", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
+  create(data) {
+    return apiFetch("/api/orders", { method: "POST", body: JSON.stringify(data) });
   }
 
-  async list({ search = "", status = "", page = 1, limit = 20 } = {}) {
-    const params = new URLSearchParams({ search, status, page, limit });
+  list({ search = "", status = "", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({
+      search: search.slice(0, 200), 
+      status,
+      page: String(page),
+      limit: String(limit),
+    });
     return apiFetch(`/api/orders?${params}`);
   }
 
-  async getMyOrders({ search = "", status = "", page = 1, limit = 20 } = {}) {
-    const params = new URLSearchParams({ search, status, page, limit });
+  getMyOrders({ search = "", status = "", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ search: search.slice(0, 200), status, page, limit });
     return apiFetch(`/api/orders/my/orders?${params}`);
   }
 
-  async getAvailable({ search = "", status = "new", page = 1, limit = 20 } = {}) {
-    const params = new URLSearchParams({ search, status, page, limit });
+  getAvailable({ search = "", status = "new", page = 1, limit = 20 } = {}) {
+    const params = new URLSearchParams({ search: search.slice(0, 200), status, page, limit });
     return apiFetch(`/api/orders?${params}`);
   }
 
-  async get(id) {
+  get(id) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve({ success: false, message: "Invalid order ID" });
     return apiFetch(`/api/orders/${id}`);
   }
 
-  async update(id, data) {
-    return apiFetch(`/api/orders/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
+  update(id, data) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve({ success: false, message: "Invalid order ID" });
+    return apiFetch(`/api/orders/${id}`, { method: "PUT", body: JSON.stringify(data) });
   }
 
-  async assign(id) {
-    return apiFetch(`/api/orders/${id}/assign`, {
-      method: "PUT",
-    });
+  assign(id) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve({ success: false, message: "Invalid order ID" });
+    return apiFetch(`/api/orders/${id}/assign`, { method: "PUT" });
   }
 
-  async delete(id) {
+  delete(id) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return Promise.resolve({ success: false, message: "Invalid order ID" });
     return apiFetch(`/api/orders/${id}`, { method: "DELETE" });
   }
 
-  async sendMessage(orderId, content) {
+  sendMessage(orderId, content) {
+    if (!/^[0-9a-f-]{36}$/i.test(orderId)) return Promise.resolve({ success: false, message: "Invalid order ID" });
+    const safeContent = String(content).trim().slice(0, 2000);
     return apiFetch(`/api/orders/${orderId}/messages`, {
       method: "POST",
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content: safeContent }),
     });
   }
 
-  async getMessages(orderId, { page = 1, limit = 50 } = {}) {
-    const params = new URLSearchParams({ page, limit });
+  getMessages(orderId, { page = 1, limit = 50 } = {}) {
+    if (!/^[0-9a-f-]{36}$/i.test(orderId)) return Promise.resolve({ success: false, message: "Invalid order ID" });
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     return apiFetch(`/api/orders/${orderId}/messages?${params}`);
   }
 }
