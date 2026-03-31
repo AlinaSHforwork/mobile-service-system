@@ -68,7 +68,7 @@ export const translations = {
     totalOrders: "Total Orders",
     inProgress: "In Progress",
     completed: "Completed",
-    newOrder: "+ New Order",
+    newOrder: "New Order",
     createOrder: "Create Order",
     noOrdersYet: "No orders yet",
     createFirst: "Create your first repair order",
@@ -149,6 +149,20 @@ export const translations = {
     awaitingClientFull: "Awaiting Client",
     awaitingPartsFull: "Awaiting Parts",
 
+    // Roles
+    client: "Client",
+    master: "Master",
+
+    // Additional
+    creatingOrder: "Creating order...",
+    deletingOrder: "Deleting order...",
+    // Roles
+    client: "Client",
+    master: "Master",
+
+    // Additional
+    creatingOrder: "Creating order...",
+    deletingOrder: "Deleting order...",
     // Settings panel
     settings: "Settings",
     theme: "Theme",
@@ -172,7 +186,7 @@ export const translations = {
     search: "Пошук замовлень...",
     noResults: "Замовлень не знайдено",
     signOut: "Вийти",
-    back: "← Назад до замовлень",
+    back: "Назад до замовлень",
     submit: "Подати замовлення",
     submitting: "Подається...",
     deleting: "Видаляється...",
@@ -223,7 +237,7 @@ export const translations = {
     totalOrders: "Всього замовлень",
     inProgress: "В роботі",
     completed: "Завершено",
-    newOrder: "+ Нове замовлення",
+    newOrder: "Нове замовлення",
     createOrder: "Створити замовлення",
     noOrdersYet: "Замовлень поки немає",
     createFirst: "Створіть своє перше замовлення на ремонт",
@@ -303,6 +317,14 @@ export const translations = {
     nextPage: "Вперед →",
     awaitingClientFull: "Очікує клієнта",
     awaitingPartsFull: "Очікує запчастин",
+
+    // Roles
+    client: "Клієнт",
+    master: "Майстер",
+
+    // Additional
+    creatingOrder: "Створення замовлення...",
+    deletingOrder: "Видалення замовлення...",
 
     // Settings panel
     settings: "Налаштування",
