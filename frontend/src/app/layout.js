@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
+import Header from "@/components/Header";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({ children }) {
       <body className={outfit.variable}>
         <ThemeProvider>
           <I18nProvider>
+            <Header />
             <AuthProvider>{children}</AuthProvider>
           </I18nProvider>
         </ThemeProvider>

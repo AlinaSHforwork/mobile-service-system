@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
-import SettingsPanel from "@/components/SettingsPanel";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("login");
@@ -82,11 +81,6 @@ export default function LoginPage() {
         padding: "1rem",
       }}
     >
-      {/* Settings top-right */}
-      <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 20 }}>
-        <SettingsPanel />
-      </div>
-
       <div
         className="animate-fade-in"
         style={{

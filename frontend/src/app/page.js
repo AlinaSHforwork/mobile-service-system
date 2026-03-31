@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import SettingsPanel from "@/components/SettingsPanel";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -32,10 +31,6 @@ export default function Home() {
         padding: "2rem",
       }}
     >
-      {/* Settings panel top-right */}
-      <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 20 }}>
-        <SettingsPanel />
-      </div>
 
       <div className="animate-fade-in" style={{ marginBottom: "1rem" }}>
         <PhoneIcon size={48} color="var(--primary)" />

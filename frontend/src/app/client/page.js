@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ordersAPI } from "@/lib/api";
-import SettingsPanel from "@/components/SettingsPanel";
 
 const STATUS_META = {
   "new": { label: "statusNew", color: "var(--badge-new-color)", bg: "var(--badge-new-bg)" },
@@ -101,11 +100,6 @@ export default function ClientPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "'Outfit', 'DM Sans', sans-serif" }}>
-      {/* Settings panel */}
-      <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 20 }}>
-        <SettingsPanel />
-      </div>
-
       {/* Top nav */}
       <header style={{
         background: "var(--surface)", borderBottom: "1px solid var(--border)",
@@ -113,6 +107,7 @@ export default function ClientPage() {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "var(--nav-shadow)",
         position: "sticky", top: 0, zIndex: 10,
+        paddingRight: "70px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <div style={{

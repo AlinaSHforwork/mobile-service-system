@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ordersAPI } from "@/lib/api";
-import SettingsPanel from "@/components/SettingsPanel";
 
 const STATUS_META = {
   "new": { label: "statusNew", color: "var(--badge-new-color)", bg: "var(--badge-new-bg)" },
@@ -94,13 +93,12 @@ export default function MasterPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "'Outfit', 'DM Sans', sans-serif", position: "relative" }}>
-      <SettingsPanel />
       {/* Dark master nav */}
       <header style={{
         background: "var(--surface)", borderBottom: "1px solid var(--border)",
         padding: "0 2rem", height: "64px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 10,
+        position: "sticky", top: 0, zIndex: 10, paddingRight: "70px",
         boxShadow: "0 2px 20px rgba(0,0,0,0.3)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

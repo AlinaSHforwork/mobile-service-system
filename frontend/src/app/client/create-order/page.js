@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ordersAPI } from "@/lib/api";
-import SettingsPanel from "@/components/SettingsPanel";
 
 const DEVICE_TYPES = ["Smartphone", "Tablet", "Smartwatch", "Feature Phone", "Other"];
 
@@ -79,18 +78,13 @@ export default function CreateOrderPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "'Outfit', 'DM Sans', sans-serif" }}>
-      {/* Settings panel */}
-      <div style={{ position: "fixed", top: "1rem", right: "1rem", zIndex: 20 }}>
-        <SettingsPanel />
-      </div>
-
       {/* Nav */}
       <header style={{
         background: "var(--surface)", borderBottom: "1px solid var(--border)",
         padding: "0 2rem", height: "64px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "var(--nav-shadow)",
-        position: "sticky", top: 0, zIndex: 10,
+        position: "sticky", top: 0, zIndex: 10, paddingRight: "70px"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <div style={{

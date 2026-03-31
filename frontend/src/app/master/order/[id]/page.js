@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { ordersAPI } from "@/lib/api";
-import SettingsPanel from "@/components/SettingsPanel";
 
 const ALL_STATUSES = [
   { value: "new", label: "statusNew", color: "var(--badge-new-color)" },
@@ -132,13 +131,12 @@ export default function MasterOrderEditPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "'Outfit', 'DM Sans', sans-serif", position: "relative" }}>
-      <SettingsPanel />
       {/* Nav */}
       <header style={{
         background: "var(--surface)", borderBottom: "1px solid var(--border)",
         padding: "0 2rem", height: "64px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 10,
+        position: "sticky", top: 0, zIndex: 10, paddingRight: "70px",
         boxShadow: "0 2px 20px rgba(0,0,0,0.3)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -207,7 +205,7 @@ export default function MasterOrderEditPage() {
               {order.technicianComment && (
                 <div style={{ background: "var(--surface-secondary)", borderRadius: "16px", border: "1px solid var(--border)", padding: "1.5rem" }}>
                   <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.75rem" }}>{t("currentTechNote")}</p>
-                  <p style={{ color: "var(--primary-light)", fontSize: "0.875rem", lineHeight: 1.6, margin: 0, fontStyle: "italic" }}>\u201c{order.technicianComment}\u201d</p>
+                  <p style={{ color: "var(--primary-light)", fontSize: "0.875rem", lineHeight: 1.6, margin: 0, fontStyle: "italic" }}>{order.technicianComment}</p>
                 </div>
               )}
             </div>
