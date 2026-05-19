@@ -24,7 +24,7 @@ function StatusBadge({ status, t }) {
       display: "inline-flex", alignItems: "center", gap: "0.35rem",
       padding: "0.25rem 0.75rem", borderRadius: "2rem", fontSize: "0.78rem",
       fontWeight: 600, color: meta.color, background: meta.bg,
-      border: `1px solid ${meta.color}22`,
+      border: `1px solid ${meta.color}22`, width: 'fit-content',
     }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
       {t(meta.label)}
